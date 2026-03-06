@@ -9,3 +9,19 @@
 body {
   @apply bg-slate-950 text-slate-100 antialiased;
 }
+
+@keyframes agentPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.85;
+  }
+}
+
+.animate-agent-pulse {
+  animation: agentPulse 1.6s ease-in-out infinite;
+}

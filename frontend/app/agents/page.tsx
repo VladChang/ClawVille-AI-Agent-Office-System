@@ -4,7 +4,7 @@ import { Badge, Card } from '@/components/ui';
 import { useDashboardStore } from '@/store/dashboardStore';
 
 export default function AgentsPage() {
-  const { agents, tasks, agentSearch, agentStatusFilter, setAgentSearch, setAgentStatusFilter, selectAgent, loading, error } = useDashboardStore(
+  const { agents, tasks, agentSearch, agentStatusFilter, setAgentSearch, setAgentStatusFilter, selectAgent, selectedAgentId, loading, error } = useDashboardStore(
     (s) => ({
       agents: s.agents,
       tasks: s.tasks,
@@ -13,6 +13,7 @@ export default function AgentsPage() {
       setAgentSearch: s.setAgentSearch,
       setAgentStatusFilter: s.setAgentStatusFilter,
       selectAgent: s.selectAgent,
+      selectedAgentId: s.selectedAgentId,
       loading: s.loading,
       error: s.error
     })
@@ -53,14 +54,19 @@ export default function AgentsPage() {
         <div className="space-y-2">
           {filtered.map((agent) => {
             const task = tasks.find((t) => t.assigneeAgentId === agent.id && t.status !== 'done');
+            const selected = selectedAgentId === agent.id;
             return (
               <button
                 key={agent.id}
                 onClick={() => selectAgent(agent.id)}
-                className="w-full rounded border border-slate-800 p-3 text-left transition hover:border-cyan-500/50"
+                className={`w-full rounded border p-3 text-left transition ${
+                  selected ? 'border-cyan-500 ring-1 ring-cyan-500/40' : 'border-slate-800 hover:border-cyan-500/50'
+                }`}
               >
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="font-medium">{agent.name}</p>
+                  <p className="font-medium">
+                    {agent.name} {selected && <span className="ml-1 text-xs text-cyan-300">(selected)</span>}
+                  </p>
                   <Badge value={agent.status} />
                 </div>
                 <p className="text-sm text-slate-300">{agent.role}</p>

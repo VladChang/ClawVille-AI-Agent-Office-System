@@ -45,12 +45,13 @@ function thoughtSummary(agent: Agent, taskTitle?: string): string {
 }
 
 export default function OfficePage() {
-  const { agents, tasks, loading, error, selectAgent } = useDashboardStore((s) => ({
+  const { agents, tasks, loading, error, selectAgent, selectedAgentId } = useDashboardStore((s) => ({
     agents: s.agents,
     tasks: s.tasks,
     loading: s.loading,
     error: s.error,
-    selectAgent: s.selectAgent
+    selectAgent: s.selectAgent,
+    selectedAgentId: s.selectedAgentId
   }));
 
   const grouped = useMemo(() => {
@@ -72,10 +73,22 @@ export default function OfficePage() {
     return map;
   }, [agents]);
 
+  const occupancy = useMemo(
+    () => roomOrder.map((room) => ({ room, count: grouped[room].length })),
+    [grouped]
+  );
+
   return (
     <section className="space-y-4">
       <Card title="Office View">
-        <p className="text-sm text-slate-300">Live visual map of the same agent state shown in list pages. Click any avatar to open agent detail.</p>
+        <p className="mb-3 text-sm text-slate-300">Live visual map of the same agent state shown in list pages. Click any avatar to open agent detail.</p>
+        <div className="flex flex-wrap gap-2">
+          {occupancy.map((item) => (
+            <span key={item.room} className="rounded-md border border-slate-700 bg-slate-900/60 px-2 py-1 text-xs text-slate-300">
+              {item.room}: <span className="font-semibold text-cyan-300">{item.count}</span>
+            </span>
+          ))}
+        </div>
       </Card>
 
       {loading && <p className="text-sm text-slate-300">Loading office state...</p>}
@@ -90,17 +103,22 @@ export default function OfficePage() {
               <ul className="space-y-2">
                 {grouped[room].map((agent) => {
                   const currentTask = tasks.find((t) => t.assigneeAgentId === agent.id && t.status !== 'done');
+                  const selected = selectedAgentId === agent.id;
+
                   return (
                     <li key={agent.id}>
                       <button
                         onClick={() => selectAgent(agent.id)}
-                        className="w-full rounded-lg border border-slate-800 bg-slate-900/70 p-3 text-left transition hover:border-cyan-600"
+                        className={`w-full rounded-lg border bg-slate-900/70 p-3 text-left transition ${
+                          selected ? 'border-cyan-500 ring-1 ring-cyan-500/50' : 'border-slate-800 hover:border-cyan-600'
+                        }`}
                         title={`${agent.name} (${agent.status})`}
                       >
                         <div className="mb-1 flex items-center justify-between gap-3">
                           <div className="flex items-center gap-2 text-sm font-medium text-slate-100">
-                            <span>{moodByStatus[agent.status]}</span>
+                            <span className={agent.status === 'busy' ? 'animate-agent-pulse' : ''}>{moodByStatus[agent.status]}</span>
                             <span>{agent.name}</span>
+                            {selected && <span className="text-[10px] uppercase tracking-wide text-cyan-300">selected</span>}
                           </div>
                           <Badge value={agent.status} />
                         </div>
