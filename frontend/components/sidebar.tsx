@@ -7,7 +7,8 @@ const links = [
   { href: '/', label: 'Overview' },
   { href: '/agents', label: 'Agents' },
   { href: '/tasks', label: 'Tasks' },
-  { href: '/events', label: 'Events' }
+  { href: '/events', label: 'Events' },
+  { href: '/office', label: 'Office' }
 ];
 
 export function Sidebar() {
