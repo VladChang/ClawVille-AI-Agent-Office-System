@@ -1,5 +1,28 @@
 # ClawVille Frontend
 
-This directory houses the web user interface for ClawVille.  It is a Next.js (React) application styled with Tailwind CSS.  The front‑end consumes agent, task and event data via a backend API or WebSocket.
+Next.js dashboard connected to ClawVille backend REST + WebSocket.
 
-At this stage the implementation is left as an exercise; see `docs/` for specification and `tasks/backlog.md` for a suggested list of features.
+## Setup
+
+```bash
+cd frontend
+npm install
+cp .env.example .env.local
+npm run dev
+```
+
+Default app URL: `http://localhost:3000`
+
+## Environment
+
+- `NEXT_PUBLIC_API_BASE_URL` (default `http://localhost:3001/api`)
+- `NEXT_PUBLIC_WS_URL` (default `ws://localhost:3001/ws`)
+- `NEXT_PUBLIC_USE_MOCK_API` (`false` by default)
+
+Mock data is fallback-only in development (or forced with `NEXT_PUBLIC_USE_MOCK_API=true`).
+
+## Build
+
+```bash
+npm run build
+```
