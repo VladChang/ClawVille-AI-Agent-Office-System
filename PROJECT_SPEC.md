@@ -4,101 +4,53 @@
 
 ClawVille is a web-based visual management interface for OpenClaw multi-agent systems.
 
-The system represents each AI agent as a virtual employee inside a digital office environment. The user can monitor agent activity, task distribution, collaboration status, and debugging information through an RPG-inspired dashboard.
+The system represents each AI agent as a virtual employee inside a digital office environment. The goal is to make multi-agent systems easier to understand and debug, while keeping the UI emotionally legible and enjoyable to monitor.
 
-The goal is to make multi-agent systems:
+ClawVille separates concerns into layers:
 
-- easier to understand
-- easier to debug
-- more emotionally legible
-- more enjoyable to monitor
+- data layer (agents, tasks, events)
+- control layer (pause/resume/retry/reassign)
+- observability layer (health metrics, alerts, analytics)
+- experience layer (lists, graphs, optional office map)
 
-## 2. Core Concept
+## 2. Core Concept Mapping
 
-| System Concept | UI Representation |
+| System concept | UI representation |
 | --- | --- |
 | Agent | Employee |
 | Tool | Equipment |
 | Task | Work item |
 | Memory | Knowledge archive |
-| Logs | Work history |
+| Logs / Events | Work history |
 | Dependencies | Collaboration links |
 | Retry / error | Stress / blockage |
 
-## 3. Primary UX Concept
+## 3. Primary UX
 
-The user opens the main dashboard and sees:
+The main dashboard should provide:
 
-- an RPG-style office map in the center
-- all agents as “employees” in the office
-- a sidebar listing compact employee cards
-- a detail panel for the selected employee
-- a summary bar showing team health and workload
+- an optional RPG-style office map as a quick status view
+- a list/grid of agents with filters and search
+- a detail panel/drawer for a selected agent
+- task visibility (handoffs, dependencies, blocked states)
+- an events timeline for debugging and auditing
 
 The UI should feel alive, but remain practical.
 
-## 4. Main Pages
+## 4. Views / Pages
 
-### Office
-Primary page.
+Recommended pages:
 
-Includes:
-- office map
-- employee cards sidebar
-- selected employee detail panel
-- team summary bar
-
-### Agents
-A full list/grid of all agents.
-
-Includes:
-- role filters
-- status filters
-- search
-- workload comparison
-
-### Tasks
-A task management and flow page.
-
-Includes:
-- task list
-- assignment status
-- owner agent
-- task progress
-- blocked states
-
-### Collaboration
-A graph page showing agent relationships.
-
-Includes:
-- dependency lines
-- waiting states
-- collaboration groups
-- bottlenecks
-
-### Logs
-Engineering/debug page.
-
-Includes:
-- system logs
-- tool logs
-- errors
-- retries
-- event timeline
-
-### Settings
-Optional future page.
-
-Includes:
-- theme options
-- bubble visibility
-- animation speed
-- office style
-- compact vs cute view
+- Overview: high-level health, counts, recent critical events
+- Agents: list of agents, status/mood, current task, dependencies
+- Tasks: active/completed tasks, assignment, progress, dependencies
+- Events: chronological event log with filters
+- Office (optional): office map visualization of the same state
 
 ## 5. Visual Language
 
-### Office map zones
+### Office zones
+
 Recommended first-pass zones:
 
 - Planning Room
@@ -110,7 +62,7 @@ Recommended first-pass zones:
 - Break Area
 - Incident Desk
 
-### Agent behavior mapping
+### Status to behavior
 
 | Status | Behavior |
 | --- | --- |
@@ -120,107 +72,70 @@ Recommended first-pass zones:
 | collaborating | grouped near another agent |
 | idle | in break area |
 | blocked | exclamation indicator |
-| error | red flash / warning icon |
+| error | warning indicator |
 
-### Mood mapping
+### Mood
 
-| Mood | Meaning |
-| --- | --- |
-| calm | stable and healthy |
-| focused | thinking deeply |
-| busy | actively executing |
-| waiting | paused for dependency |
-| overwhelmed | high load |
-| frustrated | repeated failures / retries |
-| collaborating | active teamwork |
-| idle | no assigned work |
+Mood is derived for presentation (not core state). Suggested moods:
+
+- calm, focused, busy, waiting, overwhelmed, frustrated, collaborating, idle
 
 ## 6. Thought Summaries
 
-Each agent can show a short, safe thought summary.
+Each agent can show a short, safe thought summary derived from the current task and recent events. This must not expose full chain-of-thought.
 
 Examples:
-- “I’m breaking the task into smaller steps.”
-- “Waiting for Browser Agent to return data.”
-- “This result looks unreliable, I want to verify it.”
-- “Retrying the tool call.”
 
-Important:
-- this is not full chain-of-thought
-- it is a short operational summary
-- it should be generated from current task + recent events
+- "Breaking the task into smaller steps."
+- "Waiting for the Browser Agent to return data."
+- "Retrying after a tool error."
 
-## 7. Technical Requirements
+## 7. Data Model Requirements
 
-### Frontend
-- Next.js
-- React
-- Tailwind CSS
-- Framer Motion
-- Zustand for local state
-
-### Data transport
-- WebSocket for live updates
-- fallback polling optional
-
-### Data flow
-1. OpenClaw emits agent state events
-2. frontend receives updates
-3. UI store updates selected agent / list / map positions
-4. office page renders current state
-
-## 8. Data Model Requirements
+Core entities are Agent, Task, and Event. See `docs/data-models.md` for the detailed schema.
 
 Every agent should support at least:
 
-- id
-- name
-- role
-- avatar
-- status
+- id, name, role
+- status (working/thinking/waiting/idle/retrying/error)
+- current_task, progress
+- depends_on, collaborating_with
+- last_event_at, health_score
+
+Presentation-only fields may include:
+
 - mood
-- current_task
-- progress
 - thought_summary
-- depends_on
-- collaborating_with
-- last_action
-- last_action_time
-- health_score
-- zone
+- zone (office placement)
+
+## 8. Technical Requirements (Suggested)
+
+- Frontend: Next.js + React + Tailwind CSS; light animations with Framer Motion; state via Zustand
+- Data transport: WebSocket for live updates (polling fallback optional)
+- Backend: service that ingests OpenClaw events, maintains state, exposes REST + WebSocket APIs
 
 ## 9. MVP Scope
 
-### Must-have
-- Office page
-- summary bar
-- sidebar employee cards
-- office map
-- selected employee detail panel
-- mock live updates
+Must-have:
 
-### Nice-to-have later
-- tasks page
-- collaboration graph
-- log console
-- avatar customization
-- office theme system
+- Agents page + agent detail drawer
+- Tasks page (status + dependencies)
+- Events timeline
+- an office view with mock live updates (optional but desirable)
+- summary bar (team health/workload)
 
-## 10. Development Approach
+## 10. Development Phases
 
-Suggested sequence:
-
-1. create product docs
-2. build static UI shell
-3. create mock data and simulated updates
-4. connect live state feed from OpenClaw
-5. add more pages and debugging tools
+1) Console skeleton with mock data
+2) Real-time integration (WebSocket/event ingestion)
+3) Office view implementation
+4) Advanced analytics (dependency graph, error-rate trends, playback)
 
 ## 11. Success Criteria
 
-The project succeeds if the user can:
+The project succeeds if users can:
 
 - understand what each agent is doing at a glance
 - identify blocked or unhealthy agents quickly
-- observe team-level workload and collaboration
-- enjoy using the dashboard instead of avoiding it
+- observe team-level workload and collaboration patterns
+- use the dashboard for operations/debugging, not just for novelty
