@@ -1,33 +1,43 @@
 import { mockAgents, mockEvents, mockTasks } from '@/lib/mockData';
+import {
+  mapRuntimeAgents,
+  mapRuntimeEvents,
+  mapRuntimeTasks,
+  parseApiEnvelopeData,
+  parseRuntimeRealtimeEnvelope
+} from '@/lib/runtimeContract';
 import { getRuntimeMode, type RuntimeMode } from '@/lib/runtime';
-import { normalizeAgent, normalizeEvent, normalizeTask, type ApiEventShape } from '@/lib/schema';
-import type { Agent, ApiEnvelope, Event, Task } from '@/types/models';
+import type { Agent, Event, Task } from '@/types/models';
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001/api';
 const wsUrl = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:3001/ws';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-interface SnapshotPayload {
+export interface SnapshotPayload {
   type: 'snapshot' | 'state_changed';
   data: {
     snapshot: {
       agents: Agent[];
       tasks: Task[];
-      events: ApiEventShape[];
+      events: Event[];
     };
   };
 }
 
-async function apiGet<T>(path: string): Promise<T> {
+async function apiGet<T>(path: string, mapper: (data: unknown) => T): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path}`, { cache: 'no-store' });
-  const json = (await response.json()) as ApiEnvelope<T>;
+  const json = (await response.json()) as unknown;
 
-  if (!response.ok || !json.success) {
-    throw new Error(json.error?.message ?? `Request failed: ${response.status}`);
+  if (!response.ok) {
+    if (typeof json === 'object' && json !== null && 'error' in json) {
+      const error = (json as { error?: { message?: string } }).error;
+      throw new Error(error?.message ?? `Request failed: ${response.status}`);
+    }
+    throw new Error(`Request failed: ${response.status}`);
   }
 
-  return json.data;
+  return parseApiEnvelopeData(json, mapper);
 }
 
 function connectRealDashboardWs(onMessage: (payload: SnapshotPayload) => void): WebSocket {
@@ -35,8 +45,9 @@ function connectRealDashboardWs(onMessage: (payload: SnapshotPayload) => void): 
 
   socket.onmessage = (event) => {
     try {
-      const payload = JSON.parse(event.data) as SnapshotPayload;
-      onMessage(payload);
+      const parsed = parseRuntimeRealtimeEnvelope(JSON.parse(event.data));
+      if (!parsed) return;
+      onMessage(parsed);
     } catch {
       // Ignore malformed messages and keep stream alive.
     }
@@ -62,18 +73,6 @@ async function loadMockEvents(): Promise<Event[]> {
 
 function withLocalFallback<T>(primary: () => Promise<T>, fallback: () => Promise<T>): Promise<T> {
   return primary().catch(() => fallback());
-}
-
-function normalizeAgents(agents: Agent[]): Agent[] {
-  return agents.map(normalizeAgent);
-}
-
-function normalizeTasks(tasks: Task[]): Task[] {
-  return tasks.map(normalizeTask);
-}
-
-function normalizeEvents(events: ApiEventShape[]): Event[] {
-  return events.map(normalizeEvent);
 }
 
 export interface RuntimeAdapter {
@@ -114,9 +113,9 @@ function createMockSocket(onMessage: (payload: SnapshotPayload) => void): WebSoc
 }
 
 export function createRuntimeAdapter(mode: RuntimeMode = getRuntimeMode()): RuntimeAdapter {
-  const realFetchAgents = async () => normalizeAgents(await apiGet<Agent[]>('/agents'));
-  const realFetchTasks = async () => normalizeTasks(await apiGet<Task[]>('/tasks'));
-  const realFetchEvents = async () => normalizeEvents(await apiGet<ApiEventShape[]>('/events?limit=100'));
+  const realFetchAgents = async () => apiGet('/agents', mapRuntimeAgents);
+  const realFetchTasks = async () => apiGet('/tasks', mapRuntimeTasks);
+  const realFetchEvents = async () => apiGet('/events?limit=100', mapRuntimeEvents);
 
   if (mode === 'mock') {
     return {

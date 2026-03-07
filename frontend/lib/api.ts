@@ -1,5 +1,4 @@
-import { createRuntimeAdapter } from '@/lib/runtimeAdapter';
-import { normalizeEvent } from '@/lib/schema';
+import { createRuntimeAdapter, type SnapshotPayload } from '@/lib/runtimeAdapter';
 import type { Agent, Event, Task } from '@/types/models';
 
 const runtime = createRuntimeAdapter();
@@ -44,25 +43,6 @@ export async function retryTask(taskId: string): Promise<Task> {
   return apiPost<Task>(`/tasks/${taskId}/retry`);
 }
 
-export function connectDashboardWs(onMessage: (payload: {
-  type: 'snapshot' | 'state_changed';
-  data: {
-    snapshot: {
-      agents: Agent[];
-      tasks: Task[];
-      events: Event[];
-    };
-  };
-}) => void): WebSocket {
-  return runtime.connectDashboardWs((payload) => {
-    onMessage({
-      ...payload,
-      data: {
-        snapshot: {
-          ...payload.data.snapshot,
-          events: payload.data.snapshot.events.map(normalizeEvent)
-        }
-      }
-    });
-  });
+export function connectDashboardWs(onMessage: (payload: SnapshotPayload) => void): WebSocket {
+  return runtime.connectDashboardWs(onMessage);
 }

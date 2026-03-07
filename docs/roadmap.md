@@ -17,12 +17,12 @@ This roadmap reflects the **current MVP codebase**, not just aspirational plans.
 ## In Progress
 
 - Documentation hardening (API reference + event schema + MVP scope clarity)
-- Runtime mode abstraction (mock/frontend fallback vs local integration vs real runtime)
-- Tightening API contract boundaries for future adapter swap
+- Runtime-source abstraction landed in backend (`RuntimeSource` + `MockRuntimeSource`) with unchanged HTTP/WS contracts
+- Tightening adapter contract tests before real runtime integration
 
 ## Backlog (Next)
 
-- OpenClaw runtime adapter (replace in-memory mock store)
+- OpenClaw runtime adapter (implement `RuntimeSource` contract; swap binding in `backend/src/runtime/index.ts` only)
 - Persistent storage for agents/tasks/events history
 - Authentication and role-based controls
 - Better error taxonomy + validation schemas per endpoint

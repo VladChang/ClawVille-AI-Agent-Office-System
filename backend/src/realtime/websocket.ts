@@ -1,12 +1,13 @@
 import { FastifyInstance } from 'fastify';
 import websocketPlugin from '@fastify/websocket';
 import { Event } from '../models/types';
-import { store, StoreSnapshot } from '../store/mockStore';
+import { runtimeSource } from '../runtime';
+import { RuntimeSnapshot } from '../runtime/runtimeSource';
 
 interface RealtimePayload {
   type: 'snapshot' | 'state_changed';
   data: {
-    snapshot: StoreSnapshot;
+    snapshot: RuntimeSnapshot;
     event?: Event;
   };
 }
@@ -21,14 +22,14 @@ export async function registerRealtime(app: FastifyInstance): Promise<void> {
       }
     };
 
-    send({ type: 'snapshot', data: { snapshot: store.getSnapshot() } });
+    send({ type: 'snapshot', data: { snapshot: runtimeSource.getSnapshot() } });
 
-    const unsubscribe = store.onStateChange(({ snapshot, event }) => {
+    const unsubscribe = runtimeSource.onStateChange(({ snapshot, event }) => {
       send({ type: 'state_changed', data: { snapshot, event } });
     });
 
     const interval = setInterval(() => {
-      store.updateRandomState();
+      runtimeSource.updateRandomState();
     }, 5000);
 
     connection.socket.on('close', () => {

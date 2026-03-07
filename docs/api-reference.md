@@ -33,6 +33,22 @@ Common error codes currently used:
 
 ## Endpoints
 
+## Runtime Source Boundary (P1.5)
+
+Backend route handlers now read/write through a `RuntimeSource` abstraction (`backend/src/runtime/runtimeSource.ts`) instead of directly binding to the in-memory store.
+
+Current bound implementation: `MockRuntimeSource` (`backend/src/runtime/mockRuntimeSource.ts`).
+
+Contract boundary for future adapters:
+- API routes keep the same HTTP paths and response envelope (`success/data/error`)
+- Runtime adapter must provide equivalent snapshot/list/control operations:
+  - snapshot/overview: `getSnapshot`, `getOverview`
+  - list reads: `listAgents`, `listTasks`, `listEvents`
+  - control writes: `addAgent`, `pauseAgent`, `resumeAgent`, `addTask`, `updateTaskStatus`, `retryTask`
+  - realtime hook: `onStateChange`
+
+This allows swapping in an OpenClaw-backed runtime adapter later without changing API route definitions.
+
 ## `GET /health`
 Health check.
 

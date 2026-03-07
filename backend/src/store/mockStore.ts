@@ -1,17 +1,13 @@
 import { EventEmitter } from 'node:events';
 import { v4 as uuidv4 } from 'uuid';
 import { Agent, AgentStatus, Event, EventType, Overview, Task, TaskStatus } from '../models/types';
+import { RuntimeSnapshot } from '../runtime/runtimeSource';
 
 const nowIso = () => new Date().toISOString();
 
-export interface StoreSnapshot {
-  overview: Overview;
-  agents: Agent[];
-  tasks: Task[];
-  events: Event[];
-}
+export type StoreSnapshot = RuntimeSnapshot;
 
-class MockStore {
+export class MockStore {
   private readonly emitter = new EventEmitter();
 
   private agents: Agent[] = [

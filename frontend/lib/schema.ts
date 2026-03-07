@@ -49,14 +49,17 @@ export function normalizeEvent(event: ApiEventShape): Event {
   };
 }
 
-export function normalizeAgent(agent: Agent): Agent {
+export type ApiAgentShape = Omit<Agent, 'status'> & Partial<Pick<Agent, 'status'>>;
+export type ApiTaskShape = Omit<Task, 'status'> & Partial<Pick<Task, 'status'>>;
+
+export function normalizeAgent(agent: ApiAgentShape): Agent {
   return {
     ...agent,
     status: normalizeAgentStatus(agent.status)
   };
 }
 
-export function normalizeTask(task: Task): Task {
+export function normalizeTask(task: ApiTaskShape): Task {
   return {
     ...task,
     status: normalizeTaskStatus(task.status)
