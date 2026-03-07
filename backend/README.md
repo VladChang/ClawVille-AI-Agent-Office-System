@@ -15,6 +15,8 @@ TypeScript + Fastify backend for ClawVille dashboard integration.
   - `POST /api/tasks/:id/retry`
 - Realtime WebSocket (`/ws`) with snapshot + state updates
 - Configurable CORS via `CORS_ORIGIN`
+- Env-based runtime source selection via `RUNTIME_SOURCE` (`mock` | `openclaw`)
+  - `openclaw` is currently a Round 1 placeholder that safely proxies to mock fallback
 
 ## Quick Start
 

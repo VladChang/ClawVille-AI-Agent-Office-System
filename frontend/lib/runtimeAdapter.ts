@@ -25,6 +25,24 @@ export interface SnapshotPayload {
   };
 }
 
+const realModeErrorPrefix = '[Runtime mode: real]';
+
+function toRealModeStrictError(action: string, error: unknown): Error {
+  const message =
+    error instanceof Error
+      ? error.message
+      : `Unknown error while attempting to ${action} from configured runtime backend.`;
+
+  return new Error(
+    `${realModeErrorPrefix} Unable to ${action}. ` +
+      `Real mode does not allow mock/local fallback. Verify backend availability and runtime wiring. Root cause: ${message}`
+  );
+}
+
+export function isRealModeStrictError(error: unknown): boolean {
+  return error instanceof Error && error.message.startsWith(realModeErrorPrefix);
+}
+
 async function apiGet<T>(path: string, mapper: (data: unknown) => T): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path}`, { cache: 'no-store' });
   const json = (await response.json()) as unknown;
@@ -73,6 +91,12 @@ async function loadMockEvents(): Promise<Event[]> {
 
 function withLocalFallback<T>(primary: () => Promise<T>, fallback: () => Promise<T>): Promise<T> {
   return primary().catch(() => fallback());
+}
+
+function withRealStrict<T>(action: string, operation: () => Promise<T>): Promise<T> {
+  return operation().catch((error) => {
+    throw toRealModeStrictError(action, error);
+  });
 }
 
 export interface RuntimeAdapter {
@@ -139,9 +163,9 @@ export function createRuntimeAdapter(mode: RuntimeMode = getRuntimeMode()): Runt
 
   return {
     mode,
-    fetchAgents: realFetchAgents,
-    fetchTasks: realFetchTasks,
-    fetchEvents: realFetchEvents,
+    fetchAgents: () => withRealStrict('fetch agents', realFetchAgents),
+    fetchTasks: () => withRealStrict('fetch tasks', realFetchTasks),
+    fetchEvents: () => withRealStrict('fetch events', realFetchEvents),
     connectDashboardWs: connectRealDashboardWs
   };
 }

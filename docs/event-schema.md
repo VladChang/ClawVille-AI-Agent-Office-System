@@ -130,7 +130,8 @@ Detailed boundary rules are documented in `docs/runtime-adapter-contract.md`.
 
 ## Runtime Adapter Boundary (P1.5)
 
-Realtime publishing now consumes a runtime-source interface (`backend/src/runtime/runtimeSource.ts`) and is currently wired to the mock implementation.
+Realtime publishing now consumes a runtime-source interface (`backend/src/runtime/runtimeSource.ts`) with env-based binding (`RUNTIME_SOURCE=mock|openclaw`).
+Current `openclaw` mode is a Round 1 placeholder adapter that safely proxies to mock fallback.
 
 Adapter requirements for future real-runtime mode:
 - `getSnapshot()` must return the same snapshot object shape used by WS `snapshot/state_changed` payloads.

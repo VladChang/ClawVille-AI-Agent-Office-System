@@ -19,7 +19,7 @@ Current repo state: **MVP in progress**. You can run a working local stack (Next
 
 - No persistent database (state resets on backend restart)
 - No authentication / RBAC
-- No direct OpenClaw runtime integration yet (real adapter still planned)
+- No direct OpenClaw runtime data-plane integration yet (Round 1 runtime source scaffold is in place)
 - No production hardening (rate limit, audit log, HA, etc.)
 
 ---
@@ -41,6 +41,7 @@ Current repo state: **MVP in progress**. You can run a working local stack (Next
 
 - API and event schema docs formalization (this batch)
 - Runtime mode framing (mock vs local integration vs real runtime)
+- Round 1 backend runtime source selection scaffold (`RUNTIME_SOURCE=mock|openclaw`)
 - Roadmap/backlog alignment with actual shipped MVP behavior
 
 ### 🗺 Planned
@@ -54,22 +55,21 @@ Current repo state: **MVP in progress**. You can run a working local stack (Next
 
 ## Runtime Modes
 
-ClawVille is designed to operate in 3 modes:
+ClawVille currently exposes runtime mode controls on both frontend and backend.
 
-1. **Mock mode (frontend-only fallback)**
-   - Enable with `NEXT_PUBLIC_USE_MOCK_API=true`
-   - Frontend serves static mock agents/tasks/events from `frontend/lib/mockData.ts`
-   - Best for UI prototyping without backend
+1. **Frontend runtime mode (`NEXT_PUBLIC_RUNTIME_MODE`)**
+   - `mock`: frontend serves static fixtures from `frontend/lib/mockData.ts`
+   - `local`: backend-first with fallback to local fixtures (default in dev)
+   - `real`: strict backend mode with no fallback; failures are surfaced as explicit strict-mode errors
+   - Legacy fallback toggle `NEXT_PUBLIC_USE_MOCK_API=true` is still honored for compatibility
 
-2. **Local integration mode (current default MVP path)**
-   - Frontend + backend both running locally
-   - Frontend calls REST (`/api/*`) and subscribes WS (`/ws`)
-   - Backend uses in-memory `mockStore` and simulated state changes
+2. **Backend runtime source (`RUNTIME_SOURCE`)**
+   - `mock`: in-memory `MockRuntimeSource`
+   - `openclaw`: Round 1 placeholder `OpenClawRuntimeSource`, currently proxied to mock fallback with explicit TODO boundaries/logging
 
-3. **Real runtime mode (planned)**
-   - Backend adapter reads/writes real OpenClaw runtime data
-   - Same frontend contract (REST + WS envelope) is preserved
-   - Goal: swap data source without rewriting dashboard UI
+3. **True OpenClaw runtime mode (next rounds)**
+   - Replace Round 1 placeholder internals with real OpenClaw reads/writes
+   - Keep REST + WS contract unchanged so frontend UI does not need rewrites
 
 ---
 

@@ -37,7 +37,9 @@ Common error codes currently used:
 
 Backend route handlers now read/write through a `RuntimeSource` abstraction (`backend/src/runtime/runtimeSource.ts`) instead of directly binding to the in-memory store.
 
-Current bound implementation: `MockRuntimeSource` (`backend/src/runtime/mockRuntimeSource.ts`).
+Current binding is env-driven via `RUNTIME_SOURCE`:
+- `mock` -> `MockRuntimeSource` (`backend/src/runtime/mockRuntimeSource.ts`)
+- `openclaw` -> `OpenClawRuntimeSource` placeholder (`backend/src/runtime/openclawRuntimeSource.ts`) that currently proxies to mock fallback (Round 1)
 
 Contract boundary for future adapters:
 - API routes keep the same HTTP paths and response envelope (`success/data/error`)

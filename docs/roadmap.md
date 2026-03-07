@@ -13,16 +13,19 @@ This roadmap reflects the **current MVP codebase**, not just aspirational plans.
 - WebSocket realtime channel with initial snapshot + state updates
 - Office View with room grouping, occupancy chips, and collaboration links
 - Local dev setup and build pipeline for frontend/backend
+- Round 1 runtime integration scaffold:
+  - Backend env-based runtime source selection (`RUNTIME_SOURCE=mock|openclaw`)
+  - Placeholder `OpenClawRuntimeSource` with safe proxy-to-mock fallback + startup mode logging
+  - Frontend strict `real` mode error surfacing + tests
 
 ## In Progress
 
 - Documentation hardening (API reference + event schema + MVP scope clarity)
-- Runtime-source abstraction landed in backend (`RuntimeSource` + `MockRuntimeSource`) with unchanged HTTP/WS contracts
 - Tightening adapter contract tests before real runtime integration
 
 ## Backlog (Next)
 
-- OpenClaw runtime adapter (implement `RuntimeSource` contract; swap binding in `backend/src/runtime/index.ts` only)
+- OpenClaw runtime adapter Round 2+ (replace Round 1 proxy internals with real OpenClaw read/write operations while preserving `RuntimeSource` contract)
 - Persistent storage for agents/tasks/events history
 - Authentication and role-based controls
 - Better error taxonomy + validation schemas per endpoint

@@ -89,6 +89,13 @@ Rules:
 - Malformed items inside arrays are skipped.
 - Parser returns `null` for invalid envelope root to keep WS stream alive.
 
+## Strict Real-Mode Error Contract
+
+When frontend runtime mode is `real`:
+- Adapter must not fallback to local fixtures.
+- Fetch failures are wrapped as explicit strict-mode errors with prefix `[Runtime mode: real]`.
+- Store surfaces this message via `error` + connection hint so operators know this is a runtime wiring issue, not silent fallback.
+
 ## Testing Scope
 
 Covered by `frontend/tests/runtimeContract.test.ts`:

@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { apiRoutes } from './routes/api';
 import { registerRealtime } from './realtime/websocket';
+import { runtimeBinding } from './runtime';
 
 const port = Number(process.env.PORT ?? 3001);
 const host = process.env.HOST ?? '0.0.0.0';
@@ -17,6 +18,16 @@ async function buildServer() {
 
   await app.register(apiRoutes, { prefix: '/api' });
   await registerRealtime(app);
+
+  app.log.info(
+    {
+      runtimeSource: runtimeBinding.mode,
+      round1PlaceholderFallback: runtimeBinding.isFallback
+    },
+    runtimeBinding.mode === 'openclaw'
+      ? 'Runtime source selected: openclaw (Round 1 placeholder with mock fallback)'
+      : 'Runtime source selected: mock'
+  );
 
   return app;
 }

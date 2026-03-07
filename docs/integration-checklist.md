@@ -7,6 +7,9 @@ Use this checklist after starting backend (`:3001`) and frontend (`:3000`) to ve
 - [ ] Backend running: `cd backend && npm run dev`
 - [ ] Frontend running: `cd frontend && npm run dev`
 - [ ] Frontend reachable at `http://localhost:3000`
+- [ ] Runtime config verified:
+  - Backend `.env`: `RUNTIME_SOURCE=mock` (or `openclaw` Round 1 placeholder)
+  - Frontend `.env.local`: `NEXT_PUBLIC_RUNTIME_MODE=local` for fallback-friendly integration checks
 
 ## REST flow checks
 

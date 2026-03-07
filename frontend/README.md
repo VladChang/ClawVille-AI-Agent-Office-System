@@ -17,9 +17,13 @@ Default app URL: `http://localhost:3000`
 
 - `NEXT_PUBLIC_API_BASE_URL` (default `http://localhost:3001/api`)
 - `NEXT_PUBLIC_WS_URL` (default `ws://localhost:3001/ws`)
-- `NEXT_PUBLIC_USE_MOCK_API` (`false` by default)
+- `NEXT_PUBLIC_RUNTIME_MODE` (`mock` | `local` | `real`)
+  - `mock`: frontend fixtures only
+  - `local`: backend-first with mock fallback
+  - `real`: strict backend mode (no fallback)
+- `NEXT_PUBLIC_USE_MOCK_API` (`false` by default, legacy compatibility flag)
 
-Mock data is fallback-only in development (or forced with `NEXT_PUBLIC_USE_MOCK_API=true`).
+When `NEXT_PUBLIC_RUNTIME_MODE=real`, runtime failures are surfaced as strict-mode errors in dashboard state so operators can immediately see configuration/runtime issues.
 
 ## Tests
 
