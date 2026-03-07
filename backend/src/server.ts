@@ -1,19 +1,42 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import { randomUUID } from 'node:crypto';
 import { apiRoutes } from './routes/api';
 import { registerRealtime } from './realtime/websocket';
 import { runtimeBinding } from './runtime';
+import { recordRequestMetric } from './observability';
 
 const port = Number(process.env.PORT ?? 3001);
 const host = process.env.HOST ?? '0.0.0.0';
 
 async function buildServer() {
-  const app = Fastify({ logger: true });
+  const app = Fastify({
+    logger: { level: process.env.LOG_LEVEL ?? 'info' },
+    requestIdHeader: 'x-request-id',
+    genReqId: (req) => {
+      const incoming = req.headers['x-request-id'];
+      return typeof incoming === 'string' && incoming.trim().length > 0 ? incoming : randomUUID();
+    }
+  });
 
   const corsOrigin = process.env.CORS_ORIGIN?.trim();
 
   await app.register(cors, {
     origin: corsOrigin && corsOrigin.length > 0 ? corsOrigin : true
+  });
+
+  app.addHook('onResponse', (req, reply, done) => {
+    reply.header('x-request-id', req.id);
+
+    const route = req.routeOptions.url ?? req.url;
+    recordRequestMetric({
+      method: req.method,
+      route,
+      statusCode: reply.statusCode,
+      durationMs: reply.elapsedTime
+    });
+
+    done();
   });
 
   await app.register(apiRoutes, { prefix: '/api' });
@@ -32,6 +55,10 @@ async function buildServer() {
 
   if (runtimeBinding.warning) {
     app.log.warn({ runtimeWarning: runtimeBinding.warning }, runtimeBinding.warning);
+  }
+
+  if (process.env.NODE_ENV === 'production' && (!corsOrigin || corsOrigin.length === 0)) {
+    app.log.warn('CORS_ORIGIN is not set in production; this defaults to permissive CORS. Set CORS_ORIGIN to a trusted origin.');
   }
 
   return app;

@@ -32,6 +32,8 @@ Use this checklist before tagging/releasing Sprint 4.
 ## 4) API + realtime sanity
 
 - [ ] `GET /api/health` returns `success: true` and `data.ok: true`
+- [ ] `GET /api/ready` returns expected readiness status for target runtime mode
+- [ ] `GET /api/metrics` returns Prometheus text payload
 - [ ] `GET /api/overview`, `/api/agents`, `/api/tasks`, `/api/events?limit=5` return 200
 - [ ] WebSocket endpoint `ws://localhost:3001/ws` emits snapshot/event messages
 

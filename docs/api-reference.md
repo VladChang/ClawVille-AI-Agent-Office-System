@@ -30,10 +30,17 @@ Common error codes currently used:
 - `NOT_FOUND`
 - `RUNTIME_NOT_CONFIGURED`
 - `RUNTIME_UNAVAILABLE`
+- `NOT_READY`
 
 ---
 
 ## Endpoints
+
+## Request Correlation
+
+- API accepts optional incoming header: `x-request-id`
+- If absent, backend generates a UUID request id
+- Response includes `x-request-id` for log/API correlation
 
 ## Runtime Source Boundary (P1.5)
 
@@ -63,7 +70,7 @@ Contract boundary for future adapters:
 This allows swapping in an OpenClaw-backed runtime adapter later without changing API route definitions.
 
 ## `GET /health`
-Health check.
+Liveness check.
 
 **Response `200`**
 ```json
@@ -75,6 +82,21 @@ Health check.
   }
 }
 ```
+
+## `GET /ready`
+Readiness check.
+
+- Returns `200` when runtime posture is ready for serving.
+- Returns `503` + `NOT_READY` when backend is in strict degraded openclaw mode (`RUNTIME_SOURCE=openclaw`, fallback disabled, runtime client not configured).
+
+## `GET /metrics`
+Prometheus text endpoint for lightweight service metrics.
+
+Current exported metrics:
+- `clawville_process_uptime_seconds`
+- `clawville_http_requests_total`
+- `clawville_http_request_duration_ms_sum`
+- `clawville_http_requests_by_route_total{method,route,status_code}`
 
 ## `GET /overview`
 Returns aggregate counters and status breakdown.

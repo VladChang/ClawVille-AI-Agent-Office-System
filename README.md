@@ -20,7 +20,7 @@ Current repo state: **MVP in progress**. You can run a working local stack (Next
 - No persistent database (state resets on backend restart)
 - No authentication / RBAC
 - No direct OpenClaw runtime transport wired yet (Round 2 adapter skeleton is in place with strict degraded-mode handling)
-- No production hardening (rate limit, audit log, HA, etc.)
+- No full production hardening yet (auth/RBAC, audit trail, HA, and formal SLO alerting still pending)
 
 ---
 
@@ -36,12 +36,13 @@ Current repo state: **MVP in progress**. You can run a working local stack (Next
 - Task control: retry
 - Frontend realtime state sync via Zustand + WebSocket
 - Local build passes for backend and frontend
+- Dockerized local/prod-like run path (`backend` + `frontend` via `docker-compose.yml`)
+- Baseline ops hooks: request IDs, structured runtime logs, readiness endpoint, and lightweight metrics endpoint
 
 ### 🚧 In Progress
 
 - API and event schema docs formalization (this batch)
 - Runtime mode framing (mock vs local integration vs real runtime)
-- Round 2 backend runtime source selection scaffold (`RUNTIME_SOURCE=mock|openclaw`) with strict not-configured signaling
 - Roadmap/backlog alignment with actual shipped MVP behavior
 
 ### 🗺 Planned
@@ -169,6 +170,37 @@ cd backend && npm run build
 cd ../frontend && npm run build
 ```
 
+### 5) Dockerized local/prod-like run
+
+```bash
+docker compose build
+docker compose up -d
+```
+
+Check service health and readiness:
+
+```bash
+curl -s http://localhost:3001/api/health
+curl -s http://localhost:3001/api/ready
+curl -s http://localhost:3001/api/metrics
+```
+
+Stop stack:
+
+```bash
+docker compose down
+```
+
+---
+
+## Security + Ops Baseline (Round 3)
+
+- Set `CORS_ORIGIN` explicitly in production (avoid permissive wildcard)
+- Keep `ALLOW_RUNTIME_FALLBACK=false` in production
+- Never commit runtime secrets (`OPENCLAW_RUNTIME_API_KEY`) to git; inject via env/secrets manager
+- Use `GET /api/ready` for readiness checks (strict runtime posture)
+- Use `GET /api/metrics` and JSON logs for baseline observability
+
 ---
 
 ## Key Docs
@@ -176,5 +208,6 @@ cd ../frontend && npm run build
 - `docs/api-reference.md` — current REST endpoints and envelopes
 - `docs/event-schema.md` — event and WebSocket payload schema
 - `docs/roadmap.md` — implementation-aligned roadmap
+- `docs/ops-hardening-round3.md` — deployment/ops/security baseline for Round 3
 - `tasks/backlog.md` — execution backlog
 - `tasks/roadmap.md` — sprint-oriented delivery plan

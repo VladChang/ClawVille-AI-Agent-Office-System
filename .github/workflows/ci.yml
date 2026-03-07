@@ -49,6 +49,14 @@ jobs:
           NEXT_PUBLIC_USE_MOCK_API: "false"
         run: npm run build
 
+      - name: Docker compose config validation
+        run: |
+          if command -v docker >/dev/null 2>&1; then
+            docker compose config >/dev/null
+          else
+            echo "docker not available in runner; skipping compose validation"
+          fi
+
       - name: Acceptance smoke (backend + frontend)
         shell: bash
         env:

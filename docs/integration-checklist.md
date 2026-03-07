@@ -15,13 +15,15 @@ Use this checklist after starting backend (`:3001`) and frontend (`:3000`) to ve
 
 ## REST flow checks
 
-### 1) Health endpoint
+### 1) Health and readiness endpoints
 
 ```bash
 curl -s http://localhost:3001/api/health
+curl -s http://localhost:3001/api/ready
 ```
 
-- [ ] Returns JSON with `ok: true`
+- [ ] Health returns JSON with `ok: true`
+- [ ] Ready returns 200 in expected mode (or 503 `NOT_READY` in strict degraded openclaw mode)
 
 ### 2) Read baseline data
 
@@ -34,6 +36,7 @@ curl -s "http://localhost:3001/api/events?limit=5"
 
 - [ ] Endpoints respond with JSON and HTTP 200
 - [ ] `overview` counters are present (`totalAgents`, `totalTasks`, etc.)
+- [ ] `curl -s http://localhost:3001/api/metrics` returns Prometheus-formatted text
 
 ### 3) Create data via API
 

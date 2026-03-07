@@ -1,0 +1,51 @@
+name: clawville
+
+services:
+  backend:
+    build:
+      context: ./backend
+    image: clawville-backend:local
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      HOST: 0.0.0.0
+      LOG_LEVEL: info
+      CORS_ORIGIN: http://localhost:3000
+      RUNTIME_SOURCE: ${RUNTIME_SOURCE:-mock}
+      OPENCLAW_RUNTIME_ENDPOINT: ${OPENCLAW_RUNTIME_ENDPOINT:-}
+      OPENCLAW_RUNTIME_API_KEY: ${OPENCLAW_RUNTIME_API_KEY:-}
+      ALLOW_RUNTIME_FALLBACK: ${ALLOW_RUNTIME_FALLBACK:-false}
+    ports:
+      - "3001:3001"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3001/api}
+        NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:3001/ws}
+        NEXT_PUBLIC_RUNTIME_MODE: ${NEXT_PUBLIC_RUNTIME_MODE:-local}
+    image: clawville-frontend:local
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3001/api}
+      NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:3001/ws}
+      NEXT_PUBLIC_RUNTIME_MODE: ${NEXT_PUBLIC_RUNTIME_MODE:-local}
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 20s

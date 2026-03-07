@@ -19,11 +19,18 @@ This roadmap reflects the **current MVP codebase**, not just aspirational plans.
   - Strict degraded behavior in `openclaw` mode when client is not configured (no silent fallback unless `ALLOW_RUNTIME_FALLBACK=true`)
   - Startup warnings for runtime config gaps and fallback posture
   - Frontend strict `real` mode error surfacing + actionable runtime-not-configured banner + tests
+- Round 3 deployment/ops baseline:
+  - Dockerized backend/frontend path with `docker-compose.yml`
+  - Readiness endpoint (`/api/ready`) + health endpoint guidance
+  - Lightweight metrics endpoint (`/api/metrics`) with request counters/duration sums
+  - Request ID propagation (`x-request-id`) and structured runtime logs
+  - Security baseline docs for env posture, CORS hardening, and secret handling
 
 ## In Progress
 
 - Documentation hardening (API reference + event schema + MVP scope clarity)
 - Tightening adapter contract tests before real runtime integration
+- Round 3 follow-up: broaden metrics set and add alert thresholds/dashboards
 
 ## Backlog (Next)
 

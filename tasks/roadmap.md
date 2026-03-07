@@ -9,12 +9,14 @@ Sprint-oriented view derived from current implementation.
 - Backend REST API + WebSocket stream
 - In-memory store with agent/task/event mutations
 - Control actions wired end-to-end (pause/resume/retry)
+- Round 3 baseline shipped: Dockerfiles + compose, readiness/metrics endpoint, request-id log correlation, security baseline docs
 
 ## In Progress (stabilization)
 
 - Documentation pass for API/event contracts and runtime modes
 - Contract cleanup to support future data-source swap
 - Backlog refinement for real-runtime integration
+- Ops baseline follow-ups (metrics expansion + alerting thresholds)
 
 ## Backlog (delivery order)
 
