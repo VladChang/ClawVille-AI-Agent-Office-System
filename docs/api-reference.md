@@ -28,6 +28,8 @@ Base URL (local default): `http://localhost:3001/api`
 Common error codes currently used:
 - `VALIDATION_ERROR`
 - `NOT_FOUND`
+- `RUNTIME_NOT_CONFIGURED`
+- `RUNTIME_UNAVAILABLE`
 
 ---
 
@@ -39,7 +41,16 @@ Backend route handlers now read/write through a `RuntimeSource` abstraction (`ba
 
 Current binding is env-driven via `RUNTIME_SOURCE`:
 - `mock` -> `MockRuntimeSource` (`backend/src/runtime/mockRuntimeSource.ts`)
-- `openclaw` -> `OpenClawRuntimeSource` placeholder (`backend/src/runtime/openclawRuntimeSource.ts`) that currently proxies to mock fallback (Round 1)
+- `openclaw` -> `OpenClawRuntimeSource` Round 2 adapter skeleton (`backend/src/runtime/openclawRuntimeSource.ts`)
+
+OpenClaw runtime env vars:
+- `OPENCLAW_RUNTIME_ENDPOINT`
+- `OPENCLAW_RUNTIME_API_KEY`
+- `ALLOW_RUNTIME_FALLBACK=false` by default (strict mode)
+
+Round 2 behavior:
+- If runtime client is not configured and fallback is disabled, API returns `503` with `RUNTIME_NOT_CONFIGURED`.
+- If `ALLOW_RUNTIME_FALLBACK=true`, backend can proxy to mock runtime for non-production/dev continuity.
 
 Contract boundary for future adapters:
 - API routes keep the same HTTP paths and response envelope (`success/data/error`)

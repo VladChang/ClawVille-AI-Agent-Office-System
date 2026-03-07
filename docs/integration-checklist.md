@@ -8,8 +8,10 @@ Use this checklist after starting backend (`:3001`) and frontend (`:3000`) to ve
 - [ ] Frontend running: `cd frontend && npm run dev`
 - [ ] Frontend reachable at `http://localhost:3000`
 - [ ] Runtime config verified:
-  - Backend `.env`: `RUNTIME_SOURCE=mock` (or `openclaw` Round 1 placeholder)
-  - Frontend `.env.local`: `NEXT_PUBLIC_RUNTIME_MODE=local` for fallback-friendly integration checks
+  - Backend `.env`: `RUNTIME_SOURCE=mock` (or `openclaw` Round 2 adapter skeleton)
+  - If `RUNTIME_SOURCE=openclaw`: set `OPENCLAW_RUNTIME_ENDPOINT`, `OPENCLAW_RUNTIME_API_KEY`
+  - Keep `ALLOW_RUNTIME_FALLBACK=false` unless intentionally enabling temporary mock fallback
+  - Frontend `.env.local`: `NEXT_PUBLIC_RUNTIME_MODE=local` for fallback-friendly integration checks (or `real` for strict runtime validation)
 
 ## REST flow checks
 
@@ -75,7 +77,7 @@ npx wscat -c ws://localhost:3001/ws
 ```
 
 - [ ] First message is `{"type":"snapshot", ...}`
-- [ ] Follow-up messages arrive about every 5 seconds as `{"type":"event", ...}`
+- [ ] Follow-up messages arrive about every 5 seconds as `{"type":"state_changed", ...}`
 - [ ] WS connection closes cleanly when client exits
 
 ## Frontend sanity checks

@@ -22,12 +22,17 @@ async function buildServer() {
   app.log.info(
     {
       runtimeSource: runtimeBinding.mode,
-      round1PlaceholderFallback: runtimeBinding.isFallback
+      allowRuntimeFallback: runtimeBinding.allowFallback,
+      runtimeDegraded: runtimeBinding.degraded
     },
     runtimeBinding.mode === 'openclaw'
-      ? 'Runtime source selected: openclaw (Round 1 placeholder with mock fallback)'
+      ? 'Runtime source selected: openclaw (Round 2 adapter skeleton)'
       : 'Runtime source selected: mock'
   );
+
+  if (runtimeBinding.warning) {
+    app.log.warn({ runtimeWarning: runtimeBinding.warning }, runtimeBinding.warning);
+  }
 
   return app;
 }

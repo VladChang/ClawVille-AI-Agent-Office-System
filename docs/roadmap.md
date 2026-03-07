@@ -13,10 +13,12 @@ This roadmap reflects the **current MVP codebase**, not just aspirational plans.
 - WebSocket realtime channel with initial snapshot + state updates
 - Office View with room grouping, occupancy chips, and collaboration links
 - Local dev setup and build pipeline for frontend/backend
-- Round 1 runtime integration scaffold:
+- Round 2 runtime integration scaffold:
   - Backend env-based runtime source selection (`RUNTIME_SOURCE=mock|openclaw`)
-  - Placeholder `OpenClawRuntimeSource` with safe proxy-to-mock fallback + startup mode logging
-  - Frontend strict `real` mode error surfacing + tests
+  - Adapter-ready `OpenClawRuntimeSource` with injectable client skeleton (snapshot/list/get/control/subscribe)
+  - Strict degraded behavior in `openclaw` mode when client is not configured (no silent fallback unless `ALLOW_RUNTIME_FALLBACK=true`)
+  - Startup warnings for runtime config gaps and fallback posture
+  - Frontend strict `real` mode error surfacing + actionable runtime-not-configured banner + tests
 
 ## In Progress
 

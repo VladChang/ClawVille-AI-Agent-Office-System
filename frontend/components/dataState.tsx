@@ -10,11 +10,26 @@ export function DataHealthBanner({
   connectionStatus: DashboardConnectionStatus;
   connectionMessage: string | null;
 }) {
+  const isRuntimeNotConfigured =
+    connectionStatus === 'degraded' &&
+    typeof connectionMessage === 'string' &&
+    /adapter is not configured|RUNTIME_NOT_CONFIGURED/i.test(connectionMessage);
+
   return (
     <div className="mb-3 space-y-2">
       {error && <Notice tone="error">{error}</Notice>}
       {connectionStatus === 'disconnected' && connectionMessage && <Notice tone="warn">{connectionMessage}</Notice>}
-      {connectionStatus === 'degraded' && connectionMessage && <Notice tone="warn">{connectionMessage}</Notice>}
+      {connectionStatus === 'degraded' && connectionMessage && (
+        <Notice tone="warn">
+          {isRuntimeNotConfigured ? (
+            <>
+              <b>Runtime not configured:</b> {connectionMessage}
+            </>
+          ) : (
+            connectionMessage
+          )}
+        </Notice>
+      )}
       {connectionStatus === 'connecting' && connectionMessage && <Notice tone="info">{connectionMessage}</Notice>}
     </div>
   );

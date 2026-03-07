@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { connectDashboardWs, fetchAgents, fetchEvents, fetchTasks, pauseAgent, resumeAgent, retryTask } from '@/lib/api';
-import { isRealModeStrictError } from '@/lib/runtimeAdapter';
+import { isRealModeStrictError, isRuntimeNotConfiguredError } from '@/lib/runtimeAdapter';
 import type { Agent, Event, Task } from '@/types/models';
 
 export type DashboardConnectionStatus = 'idle' | 'connecting' | 'connected' | 'degraded' | 'disconnected';
@@ -134,12 +134,15 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       startSocket(set, get);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to load dashboard data.';
+      const runtimeNotConfigured = isRuntimeNotConfiguredError(error);
       set({
         loading: false,
         connectionStatus: 'degraded',
         error: errorMessage,
         connectionMessage: isRealModeStrictError(error)
-          ? 'Real runtime mode is strict and currently unavailable. Check backend runtime configuration.'
+          ? runtimeNotConfigured
+            ? 'Runtime adapter is not configured. Set OPENCLAW_RUNTIME_ENDPOINT and OPENCLAW_RUNTIME_API_KEY on backend (or ALLOW_RUNTIME_FALLBACK=true for temporary mock fallback).'
+            : 'Real runtime mode is strict and currently unavailable. Check backend runtime configuration.'
           : 'Using fallback/local data when available.'
       });
 

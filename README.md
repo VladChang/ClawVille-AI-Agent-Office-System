@@ -19,7 +19,7 @@ Current repo state: **MVP in progress**. You can run a working local stack (Next
 
 - No persistent database (state resets on backend restart)
 - No authentication / RBAC
-- No direct OpenClaw runtime data-plane integration yet (Round 1 runtime source scaffold is in place)
+- No direct OpenClaw runtime transport wired yet (Round 2 adapter skeleton is in place with strict degraded-mode handling)
 - No production hardening (rate limit, audit log, HA, etc.)
 
 ---
@@ -41,7 +41,7 @@ Current repo state: **MVP in progress**. You can run a working local stack (Next
 
 - API and event schema docs formalization (this batch)
 - Runtime mode framing (mock vs local integration vs real runtime)
-- Round 1 backend runtime source selection scaffold (`RUNTIME_SOURCE=mock|openclaw`)
+- Round 2 backend runtime source selection scaffold (`RUNTIME_SOURCE=mock|openclaw`) with strict not-configured signaling
 - Roadmap/backlog alignment with actual shipped MVP behavior
 
 ### 🗺 Planned
@@ -65,10 +65,15 @@ ClawVille currently exposes runtime mode controls on both frontend and backend.
 
 2. **Backend runtime source (`RUNTIME_SOURCE`)**
    - `mock`: in-memory `MockRuntimeSource`
-   - `openclaw`: Round 1 placeholder `OpenClawRuntimeSource`, currently proxied to mock fallback with explicit TODO boundaries/logging
+   - `openclaw`: Round 2 adapter-ready `OpenClawRuntimeSource` skeleton with injectable client interface and strict degraded-mode signaling when runtime is not configured
+
+   OpenClaw env switches:
+   - `OPENCLAW_RUNTIME_ENDPOINT`
+   - `OPENCLAW_RUNTIME_API_KEY`
+   - `ALLOW_RUNTIME_FALLBACK=false` (default; no silent mock fallback)
 
 3. **True OpenClaw runtime mode (next rounds)**
-   - Replace Round 1 placeholder internals with real OpenClaw reads/writes
+   - Replace the Round 2 stub client with real transport/client wiring
    - Keep REST + WS contract unchanged so frontend UI does not need rewrites
 
 ---

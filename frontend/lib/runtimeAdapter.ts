@@ -43,6 +43,10 @@ export function isRealModeStrictError(error: unknown): boolean {
   return error instanceof Error && error.message.startsWith(realModeErrorPrefix);
 }
 
+export function isRuntimeNotConfiguredError(error: unknown): boolean {
+  return error instanceof Error && /RUNTIME_NOT_CONFIGURED|not configured/i.test(error.message);
+}
+
 async function apiGet<T>(path: string, mapper: (data: unknown) => T): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path}`, { cache: 'no-store' });
   const json = (await response.json()) as unknown;

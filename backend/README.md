@@ -16,7 +16,9 @@ TypeScript + Fastify backend for ClawVille dashboard integration.
 - Realtime WebSocket (`/ws`) with snapshot + state updates
 - Configurable CORS via `CORS_ORIGIN`
 - Env-based runtime source selection via `RUNTIME_SOURCE` (`mock` | `openclaw`)
-  - `openclaw` is currently a Round 1 placeholder that safely proxies to mock fallback
+  - `openclaw` is a Round 2 adapter skeleton with injectable runtime client interfaces
+  - strict degraded behavior by default when runtime client is not configured (`RUNTIME_NOT_CONFIGURED`)
+  - optional non-production fallback: `ALLOW_RUNTIME_FALLBACK=true`
 
 ## Quick Start
 
