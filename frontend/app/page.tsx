@@ -1,6 +1,7 @@
 'use client';
 
 import { Card, Badge } from '@/components/ui';
+import { getDashboardDerivedMetrics } from '@/lib/analytics';
 import { useDashboardStore } from '@/store/dashboardStore';
 
 export default function OverviewPage() {
@@ -11,6 +12,8 @@ export default function OverviewPage() {
     loading: s.loading,
     error: s.error
   }));
+
+  const derived = getDashboardDerivedMetrics(agents, tasks, events);
 
   if (loading) {
     return <p className="text-sm text-slate-400">Loading dashboard…</p>;
@@ -32,6 +35,20 @@ export default function OverviewPage() {
           </li>
           <li>
             Active incidents: <b>{events.filter((e) => e.level === 'error').length}</b>
+          </li>
+          <li>
+            Busiest agent:{' '}
+            <b>
+              {derived.busiestAgent
+                ? `${derived.busiestAgent.name} (${derived.busiestAgent.activeTaskCount} active tasks)`
+                : 'N/A'}
+            </b>
+          </li>
+          <li>
+            Avg wait time (todo/blocked): <b>{derived.averageWaitTime.valueMinutes} min</b>
+          </li>
+          <li>
+            Error rate: <b>{derived.errorRate.percentage}%</b>
           </li>
         </ul>
       </Card>

@@ -8,6 +8,7 @@ const links = [
   { href: '/agents', label: 'Agents' },
   { href: '/tasks', label: 'Tasks' },
   { href: '/events', label: 'Events' },
+  { href: '/analytics', label: 'Analytics' },
   { href: '/office', label: 'Office' }
 ];
 

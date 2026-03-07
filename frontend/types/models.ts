@@ -39,6 +39,30 @@ export interface ApiEnvelope<T> {
   };
 }
 
+export interface BusiestAgentMetric {
+  agentId: string;
+  name: string;
+  activeTaskCount: number;
+}
+
+export interface AverageWaitTimeMetric {
+  valueMinutes: number;
+  taskCount: number;
+}
+
+export interface ErrorRateMetric {
+  ratio: number;
+  percentage: number;
+  errorCount: number;
+  totalCount: number;
+}
+
+export interface DashboardDerivedMetrics {
+  busiestAgent: BusiestAgentMetric | null;
+  averageWaitTime: AverageWaitTimeMetric;
+  errorRate: ErrorRateMetric;
+}
+
 export interface DashboardSnapshot {
   overview: unknown;
   agents: Agent[];
