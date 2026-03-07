@@ -19,6 +19,18 @@ export default function OverviewPage() {
 
   const derived = getDashboardDerivedMetrics(agents, tasks, events);
 
+  const cardTone = {
+    errorRate: derived.errorRate.percentage >= 20 ? 'danger' : derived.errorRate.percentage >= 8 ? 'warn' : 'good',
+    waitTime: derived.averageWaitTime.valueMinutes >= 45 ? 'warn' : 'neutral'
+  } as const;
+
+  const toneClass = {
+    danger: 'border-rose-800/80 bg-rose-950/20 text-rose-200',
+    warn: 'border-amber-700/70 bg-amber-950/15 text-amber-100',
+    good: 'border-emerald-700/60 bg-emerald-950/10 text-emerald-100',
+    neutral: 'border-slate-800 bg-slate-900/50 text-slate-200'
+  } as const;
+
   const hasData = agents.length > 0 || tasks.length > 0 || events.length > 0;
 
 
@@ -34,34 +46,32 @@ export default function OverviewPage() {
             detail="Waiting for initial snapshot. If backend is offline, local fallback data will appear when available."
           />
         ) : (
-          <ul className="space-y-2 text-sm">
-            <li>
-              Total agents: <b>{agents.length}</b>
-            </li>
-            <li>
-              Total tasks: <b>{tasks.length}</b>
-            </li>
-            <li>
-              Open tasks: <b>{tasks.filter((t) => t.status !== 'done').length}</b>
-            </li>
-            <li>
-              Active incidents: <b>{events.filter((e) => isErrorLevel(e.level)).length}</b>
-            </li>
-            <li>
-              Busiest agent:{' '}
-              <b>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className={`rounded border p-2 text-sm ${toneClass.neutral}`}>
+              <p className="text-xs text-slate-400">Total agents</p>
+              <p className="font-semibold">{agents.length}</p>
+            </div>
+            <div className={`rounded border p-2 text-sm ${toneClass.neutral}`}>
+              <p className="text-xs text-slate-400">Open tasks</p>
+              <p className="font-semibold">{tasks.filter((t) => t.status !== 'done').length}</p>
+            </div>
+            <div className={`rounded border p-2 text-sm ${toneClass[cardTone.waitTime]}`}>
+              <p className="text-xs">Avg wait time</p>
+              <p className="font-semibold">{derived.averageWaitTime.valueMinutes} min</p>
+            </div>
+            <div className={`rounded border p-2 text-sm ${toneClass[cardTone.errorRate]}`}>
+              <p className="text-xs">Error rate</p>
+              <p className="font-semibold">{derived.errorRate.percentage}%</p>
+            </div>
+            <div className={`rounded border p-2 text-sm ${toneClass.neutral} sm:col-span-2`}>
+              <p className="text-xs text-slate-400">Busiest agent</p>
+              <p className="font-semibold">
                 {derived.busiestAgent
                   ? `${derived.busiestAgent.name} (${derived.busiestAgent.activeTaskCount} active tasks)`
                   : 'N/A'}
-              </b>
-            </li>
-            <li>
-              Avg wait time (todo/blocked): <b>{derived.averageWaitTime.valueMinutes} min</b>
-            </li>
-            <li>
-              Error rate: <b>{derived.errorRate.percentage}%</b>
-            </li>
-          </ul>
+              </p>
+            </div>
+          </div>
         )}
       </Card>
 
