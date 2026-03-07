@@ -26,3 +26,11 @@ Mock data is fallback-only in development (or forced with `NEXT_PUBLIC_USE_MOCK_
 ```bash
 npm run build
 ```
+
+## Office View (Sprint 3)
+
+- Route: `/office`
+- Realtime room map + agent cards from shared dashboard state
+- Occupancy chips per room
+- Collaboration signal list and animated flow lines to Collaboration Hub
+- Click-to-select agents stays in sync with drawer and Agents page highlight

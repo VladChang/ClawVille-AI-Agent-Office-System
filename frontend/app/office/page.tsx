@@ -97,12 +97,16 @@ export default function OfficePage() {
   const mapAgents = useMemo(() => {
     return roomOrder.flatMap((room) => {
       const slotAgents = grouped[room];
+      const box = roomLayout[room];
+      const cols = Math.max(2, Math.floor(box.w / 9));
+      const usableWidth = Math.max(10, box.w - 8);
+      const usableHeight = Math.max(8, box.h - 9);
+
       return slotAgents.map((agent, index) => {
-        const box = roomLayout[room];
-        const col = index % 3;
-        const row = Math.floor(index / 3);
-        const x = box.x + 3 + col * 8.5;
-        const y = box.y + 7 + row * 7;
+        const col = index % cols;
+        const row = Math.floor(index / cols);
+        const x = box.x + 4 + (col / Math.max(1, cols - 1)) * usableWidth;
+        const y = box.y + 8 + (row % 3) * (usableHeight / 2.4);
         return { agent, room, x, y };
       });
     });
@@ -140,7 +144,13 @@ export default function OfficePage() {
       {error && <p className="rounded border border-rose-500/30 bg-rose-500/10 p-2 text-sm text-rose-200">{error}</p>}
 
       <Card title="Office Map">
-        <div className="relative h-[560px] w-full overflow-hidden rounded-xl border border-slate-800 bg-slate-950">
+        <div className="mb-2 text-xs text-slate-400">Tip: click any avatar to sync highlight with Agents list and open control drawer.</div>
+        {agents.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/30 p-6 text-sm text-slate-400">
+            No agent data yet. Keep backend running and wait for the first realtime snapshot.
+          </div>
+        ) : (
+        <div className="relative h-[430px] w-full overflow-hidden rounded-xl border border-slate-800 bg-slate-950 md:h-[560px]">
           {roomOrder.map((room) => {
             const box = roomLayout[room];
             return (
@@ -194,6 +204,7 @@ export default function OfficePage() {
             );
           })}
         </div>
+        )}
       </Card>
 
       <Card title="Collaboration Signals">
