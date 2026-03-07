@@ -1,3 +1,4 @@
+import { isErrorLevel } from '@/lib/schema';
 import type {
   Agent,
   Task,
@@ -79,7 +80,7 @@ export function getErrorRateFromEvents(events: Event[]): ErrorRateMetric {
     };
   }
 
-  const errorCount = events.filter((event) => event.level === 'error').length;
+  const errorCount = events.filter((event) => isErrorLevel(event.level)).length;
   const ratio = errorCount / events.length;
 
   return {

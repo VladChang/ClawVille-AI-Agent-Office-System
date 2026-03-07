@@ -2,6 +2,7 @@
 
 import { Card, Badge } from '@/components/ui';
 import { getDashboardDerivedMetrics } from '@/lib/analytics';
+import { isErrorLevel } from '@/lib/schema';
 import { useDashboardStore } from '@/store/dashboardStore';
 
 export default function OverviewPage() {
@@ -34,7 +35,7 @@ export default function OverviewPage() {
             Open tasks: <b>{tasks.filter((t) => t.status !== 'done').length}</b>
           </li>
           <li>
-            Active incidents: <b>{events.filter((e) => e.level === 'error').length}</b>
+            Active incidents: <b>{events.filter((e) => isErrorLevel(e.level)).length}</b>
           </li>
           <li>
             Busiest agent:{' '}

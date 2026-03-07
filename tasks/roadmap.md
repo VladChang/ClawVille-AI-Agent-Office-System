@@ -1,31 +1,44 @@
-# Project Roadmap
+# Project Roadmap (Execution View)
 
-This file mirrors the high‑level roadmap described in `docs/roadmap.md` but is placed in the `tasks/` directory for convenience.  It can be converted into issues or sprints.
+Sprint-oriented view derived from current implementation.
 
-## Phase 1: Console Skeleton
+## Done (MVP foundation)
 
-* Build application skeleton with mock data
-* Implement overview, agents, tasks and events pages
-* Provide basic filtering and searching
-* Create initial agent detail panel
+- Dashboard UI with Overview / Agents / Tasks / Events
+- Office View route with room layout and selection sync
+- Backend REST API + WebSocket stream
+- In-memory store with agent/task/event mutations
+- Control actions wired end-to-end (pause/resume/retry)
 
-## Phase 2: Real‑time Integration
+## In Progress (stabilization)
 
-* Hook up WebSocket client
-* Replace mocks with real agent/task/event feed
-* Implement agent control operations
-* Add error notifications
+- Documentation pass for API/event contracts and runtime modes
+- Contract cleanup to support future data-source swap
+- Backlog refinement for real-runtime integration
 
-## Phase 3: Office View
+## Backlog (delivery order)
 
-* Design office map and sprites
-* Show agent mood and thought bubbles
-* Synchronise selection between office and lists
+### Phase A — Real Integration
 
-## Phase 4: Advanced Analytics
+- Introduce runtime adapter abstraction in backend
+- Replace mock store source with OpenClaw runtime feeds/controls
+- Preserve existing REST/WS response contracts
 
-* Compute and display derived metrics
-* Add dependency graph view
-* Support incident playback
+### Phase B — Persistence & Security
 
-Future phases may include integration with logging systems, user management or multi‑tenant support.
+- Add durable state/event persistence
+- Add authentication and role-based controls
+- Add audit logs for operator actions
+
+### Phase C — Analytics & Operations
+
+- Upgrade analytics page with real derived metrics
+- Add dependency graph and event playback
+- Add production observability and alert hooks
+
+## Improvements / Quality Gates
+
+- API contract tests (REST + WS envelope)
+- E2E smoke tests against local integration mode
+- Performance targets for larger agent/event volumes
+- Failure-mode tests (backend restart, WS reconnect, partial outage)

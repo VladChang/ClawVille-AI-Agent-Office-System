@@ -1,35 +1,36 @@
-# Development Roadmap
+# Development Roadmap (Implementation-Aligned)
 
-The ClawVille project should be built iteratively.  The following roadmap outlines a suggested sequence of phases.  Teams can adapt these based on their specific requirements.
+This roadmap reflects the **current MVP codebase**, not just aspirational plans.
 
-## Phase 1 – Console Skeleton
+## Done
 
-* Implement the basic file structure and build system (Next.js/React).  
-* Create common layout components: sidebar navigation, summary bar, content area, detail panel.  
-* Build mock versions of the Overview, Agents, Tasks and Events pages using hard‑coded data.  
-* Add filtering and search on the Agents and Tasks pages.  
-* Hook up simple control actions (e.g. pause/resume) that operate on the mock data for now.
+- Next.js dashboard skeleton with shared layout and navigation
+- Pages: Overview, Agents, Tasks, Events, Office, Analytics placeholder
+- Zustand-based shared client state
+- Backend Fastify API with stable envelope (`success/data/error`)
+- Core REST resources: overview, agents, tasks, events
+- Control actions: pause/resume agent, retry task, update task status
+- WebSocket realtime channel with initial snapshot + state updates
+- Office View with room grouping, occupancy chips, and collaboration links
+- Local dev setup and build pipeline for frontend/backend
 
-## Phase 2 – Real‑time Integration
+## In Progress
 
-* Develop a backend or middleware that ingests events from OpenClaw via WebSocket or API and stores them in an in‑memory state store.  
-* Replace mock data with live agent, task and event feeds.  
-* Update UI components to react to state changes in real time.  
-* Implement more robust control operations (pause, resume, retry, reassign) via API calls back to OpenClaw.  
-* Build simple error handling and alerting (e.g. toast notifications when a tool call fails).
+- Documentation hardening (API reference + event schema + MVP scope clarity)
+- Runtime mode abstraction (mock/frontend fallback vs local integration vs real runtime)
+- Tightening API contract boundaries for future adapter swap
 
-## Phase 3 – Office View
+## Backlog (Next)
 
-* Design a 2D map and simple sprites for the office view.  
-* Map agent roles to rooms and implement animated behaviours based on state.  
-* Generate mood and thought bubbles from agent state and recent events.  
-* Allow toggling between console and office views without losing context (e.g. selected agent remains highlighted).  
-* Optimise performance for dozens of agents and frequent updates.
+- OpenClaw runtime adapter (replace in-memory mock store)
+- Persistent storage for agents/tasks/events history
+- Authentication and role-based controls
+- Better error taxonomy + validation schemas per endpoint
+- Robust reconnect/backfill behavior for websocket clients
 
-## Phase 4 – Advanced Analytics
+## Improvements / Productionization
 
-* Compute derived metrics such as busiest agents, longest wait times and error rate trends.  
-* Add new views such as a dependency graph, collaboration heatmap or trend charts.  
-* Implement incident playback or “time travel” to see how tasks progressed and where they stalled.  
-* Integrate with alerting and incident management systems.  
-* Refine styling, animations and responsive design for production readiness.
+- Observability: structured logs, metrics, tracing
+- Reliability: idempotent commands, retries, circuit-breaking
+- Security: authN/authZ, audit log, rate limiting, CORS hardening
+- UX polish: richer analytics, timeline playback, performance tuning for larger agent counts

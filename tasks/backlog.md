@@ -1,40 +1,51 @@
-# Task Backlog
+# Task Backlog (Current MVP)
 
-This backlog lists granular tasks that should be tackled as the ClawVille system is developed.  It can be imported into GitHub Issues for assignment to AI or human developers.
+Prioritized backlog aligned with what is already implemented.
 
-## Foundation
+## Done
 
-1. **Set up project scaffold** – Initialise a Next.js project under `frontend/`, configure Tailwind and state management.  
-2. **Define data models** – Create TypeScript interfaces representing Agent, Task and Event models.  
-3. **Build layout** – Implement sidebar navigation, summary bar and main content area components.  
-4. **Stub API layer** – Mock an API service that returns hard‑coded agent/task/event data.
+- [x] Frontend scaffold (Next.js + Tailwind + Zustand)
+- [x] Core data models for agent/task/event
+- [x] Dashboard pages and shared layout
+- [x] Backend REST + WebSocket server scaffold
+- [x] API envelope standardization
+- [x] Agent control endpoints (pause/resume)
+- [x] Task retry endpoint
+- [x] Frontend realtime snapshot sync
+- [x] Office view with room-based visualization
 
-## Pages
+## In Progress
 
-5. **Overview page** – Render counts of agents and tasks, display recent events.  
-6. **Agents page** – List agents with status, role, current task and filter options.  
-7. **Agent detail drawer** – Show full information and controls when an agent is selected.  
-8. **Tasks page** – List tasks, progress, assigned agents and dependencies.  
-9. **Events page** – Build a scrollable timeline of events with filters.
+- [ ] Publish concise API reference from actual code
+- [ ] Document websocket/event payload schema
+- [ ] Clarify runtime modes and integration boundaries in README
+- [ ] Reconcile docs roadmap/tasks roadmap with shipped features
 
-## Real‑time Integration
+## Backlog
 
-10. **Implement WebSocket client** – Connect to a mock WebSocket server and update UI state on messages.  
-11. **Replace mock API** – Integrate with real OpenClaw event stream.  
-12. **Implement agent controls** – Pause, resume, retry tasks via API calls.  
-13. **Handle errors and alerts** – Display toast notifications or badges on errors and retries.
+### P0 / Near-term
 
-## Office View
+1. Add request validation schemas for create/update endpoints
+2. Add API contract tests for envelope + status codes
+3. Define and implement real runtime adapter interface (OpenClaw source)
+4. Add "connection state" UX for websocket (connected/reconnecting/degraded)
 
-14. **Design office map** – Draw or import a simple 2D layout with rooms.  
-15. **Implement agent sprites** – Create components for animated characters responding to status changes.  
-16. **Add mood and thought bubbles** – Compute derived mood and text for each agent and display as overlays.  
-17. **Synchronise selection** – Ensure selecting an agent in the map highlights the corresponding entry in lists and vice versa.
+### P1
 
-## Analytics
+5. Persist state/events (SQLite or Postgres)
+6. Add auth and role-based control permissions
+7. Add richer event filtering/search and pagination
+8. Make analytics page compute real metrics from store
 
-18. **Compute derived metrics** – Add functions to calculate busiest agents, average wait times and error rates.  
-19. **Build dependency graph view** – Visualise tasks and their dependencies as a directed graph.  
-20. **Implement incident playback** – Allow users to replay sequences of events to debug workflows.
+### P2
 
-This backlog should evolve as the project matures.  Bugs, refactorings and feedback‑driven improvements should be added along the way.
+9. Add dependency graph view
+10. Add incident/event playback timeline
+11. Add export/reporting endpoints
+
+## Improvements
+
+- Improve event severity mapping (server-provided level instead of client heuristic)
+- Add typed SDK client for frontend API calls
+- Add E2E coverage for pause/resume/retry + WS update loop
+- Add load/perf baseline for 50+ agents and high event throughput

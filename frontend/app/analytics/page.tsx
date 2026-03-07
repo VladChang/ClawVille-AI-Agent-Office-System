@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Badge, Card } from '@/components/ui';
 import { getDashboardDerivedMetrics } from '@/lib/analytics';
+import { getEventLevelWeight } from '@/lib/schema';
 import { useDashboardStore } from '@/store/dashboardStore';
 import type { EventLevel } from '@/types/models';
 
@@ -239,7 +240,7 @@ export default function AnalyticsPage() {
         { start: bucketStart, end: bucketStart + bucketSizeMs, scoreByAgent: new Map<string, number>(), total: 0 };
 
       const text = `${event.type} ${event.message}`.toLowerCase();
-      const weight = event.level === 'error' ? 3 : event.level === 'warning' ? 2 : 1;
+      const weight = getEventLevelWeight(event.level);
       const mentioned = lowerAgentNames.filter((agent) => text.includes(agent.name));
 
       if (mentioned.length > 0) {
