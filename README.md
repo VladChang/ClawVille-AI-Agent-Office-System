@@ -63,3 +63,10 @@ cd ../frontend && npm run build
 - Mock data remains for local fallback/development mode only.
 - Backend returns stable API envelopes (`success/data/error`).
 - Agent controls and task retry emit realtime updates.
+
+## Sprint 3 Status (Office View)
+
+- Office page with room-based layout and role/status mapping
+- Interactive office map with realtime agent placement
+- Room occupancy indicators and selected-agent sync with list views
+- Collaboration signal panel + animated collaboration link lines to hub

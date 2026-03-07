@@ -25,3 +25,16 @@ body {
 .animate-agent-pulse {
   animation: agentPulse 1.6s ease-in-out infinite;
 }
+
+@keyframes collabFlow {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: -8;
+  }
+}
+
+.animate-collab-flow {
+  animation: collabFlow 1.2s linear infinite;
+}

@@ -108,6 +108,21 @@ export default function OfficePage() {
     });
   }, [grouped]);
 
+  const collaborationEdges = useMemo(() => {
+    const hub = roomLayout['Collaboration Hub'];
+    const hubX = hub.x + hub.w / 2;
+    const hubY = hub.y + hub.h / 2;
+
+    const activeTaskOwners = new Set(
+      tasks.filter((t) => t.status === 'in_progress' || t.status === 'blocked').map((t) => t.assigneeAgentId).filter(Boolean)
+    );
+
+    return mapAgents
+      .filter((item) => activeTaskOwners.has(item.agent.id) && item.agent.status !== 'offline')
+      .slice(0, 8)
+      .map((item) => ({ fromX: item.x, fromY: item.y, toX: hubX, toY: hubY, id: item.agent.id }));
+  }, [tasks, mapAgents]);
+
   return (
     <section className="space-y-4">
       <Card title="Office View">
@@ -138,6 +153,22 @@ export default function OfficePage() {
               </div>
             );
           })}
+
+          <svg className="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+            {collaborationEdges.map((edge) => (
+              <line
+                key={edge.id}
+                x1={edge.fromX}
+                y1={edge.fromY}
+                x2={edge.toX}
+                y2={edge.toY}
+                stroke="rgb(34 211 238 / 0.45)"
+                strokeWidth="0.45"
+                strokeDasharray="1.5 1"
+                className="animate-collab-flow"
+              />
+            ))}
+          </svg>
 
           {mapAgents.map(({ agent, room, x, y }) => {
             const currentTask = tasks.find((t) => t.assigneeAgentId === agent.id && t.status !== 'done');
