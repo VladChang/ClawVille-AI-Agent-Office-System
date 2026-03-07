@@ -6,6 +6,7 @@ This is a minimal acceptance flow for local verification of Sprint 4 quality.
 
 - Frontend pages: `/`, `/agents`, `/tasks`, `/events`, `/office`, `/analytics`
 - Backend API: health + core read endpoints
+- Optional readiness + metrics assertions with graceful runtime-mode handling
 - Realtime: WebSocket snapshot/event stream
 
 ## Prerequisites
@@ -101,6 +102,9 @@ What it checks:
 3. Backend endpoints return HTTP 200 and `success: true` envelope:
    - `/api/health`, `/api/overview`, `/api/agents`, `/api/tasks`, `/api/events?limit=5`
 4. Health endpoint includes `data.ok: true`
+5. Optional runtime/ops checks:
+   - `/api/ready` (toggle via env)
+   - `/api/metrics` (toggle via env)
 
 ### Optional custom base URLs
 
@@ -109,6 +113,19 @@ If ports/hosts differ:
 ```bash
 FRONTEND_BASE_URL=http://localhost:3000 API_BASE_URL=http://localhost:3001/api npm run acceptance:e2e
 ```
+
+### Optional readiness + metrics assertions
+
+Enable additional checks when validating release readiness:
+
+```bash
+ACCEPTANCE_CHECK_READY=true ACCEPTANCE_READY_MODE=graceful ACCEPTANCE_CHECK_METRICS=true npm run acceptance:e2e
+```
+
+`ACCEPTANCE_READY_MODE` options:
+- `graceful` (default): accepts either `200 ready` or strict degraded `503 NOT_READY`
+- `ready`: requires `200` with `success: true` + `data.ok: true`
+- `not-ready`: requires strict degraded `503` with `error.code: NOT_READY`
 
 ## Pass Criteria
 

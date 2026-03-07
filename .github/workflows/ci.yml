@@ -64,6 +64,9 @@ jobs:
           FRONTEND_PORT: "3000"
           FRONTEND_BASE_URL: http://localhost:3000
           API_BASE_URL: http://localhost:3001/api
+          ACCEPTANCE_CHECK_READY: "true"
+          ACCEPTANCE_READY_MODE: graceful
+          ACCEPTANCE_CHECK_METRICS: "true"
         run: |
           set -euo pipefail
 

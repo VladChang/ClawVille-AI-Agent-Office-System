@@ -4,6 +4,10 @@ ClawVille is a **prototype dashboard** for monitoring and controlling multi-agen
 
 Current repo state: **MVP in progress**. You can run a working local stack (Next.js + Fastify + WebSocket) with mock/in-memory data, and exercise core operator flows.
 
+Release posture is explicitly split between:
+- **Prototype**: suitable for demos/internal validation
+- **Production-candidate**: requires passing the full release checklist + runbook preflight
+
 ---
 
 ## MVP Scope
@@ -209,5 +213,7 @@ docker compose down
 - `docs/event-schema.md` — event and WebSocket payload schema
 - `docs/roadmap.md` — implementation-aligned roadmap
 - `docs/ops-hardening-round3.md` — deployment/ops/security baseline for Round 3
+- `docs/release-checklist.md` — prototype vs production-candidate release gate
+- `docs/release-runbook.md` — tagged release procedure + rollback steps
 - `tasks/backlog.md` — execution backlog
 - `tasks/roadmap.md` — sprint-oriented delivery plan
