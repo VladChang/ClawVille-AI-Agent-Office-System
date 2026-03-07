@@ -210,6 +210,113 @@ export default function AnalyticsPage() {
     return { hotspots, pairList };
   }, [agents, tasks, filteredEvents]);
 
+  const hotspotTrend = useMemo(() => {
+    if (filteredEvents.length === 0) {
+      return { buckets: [], maxScore: 0 };
+    }
+
+    const lowerAgentNames = agents.map((agent) => ({ id: agent.id, name: agent.name.toLowerCase() }));
+    const firstTs = new Date(filteredEvents[0].timestamp).getTime();
+    const lastTs = new Date(filteredEvents[filteredEvents.length - 1].timestamp).getTime();
+    const spanMs = Math.max(1, lastTs - firstTs);
+    const bucketSizeMs =
+      timeRange === '1h'
+        ? 5 * 60 * 1000
+        : timeRange === '6h'
+          ? 15 * 60 * 1000
+          : timeRange === '24h'
+            ? 60 * 60 * 1000
+            : Math.max(30 * 60 * 1000, Math.ceil(spanMs / 12));
+
+    const bucketMap = new Map<number, { start: number; end: number; scoreByAgent: Map<string, number>; total: number }>();
+
+    for (const event of filteredEvents) {
+      const ts = new Date(event.timestamp).getTime();
+      const slot = Math.floor((ts - firstTs) / bucketSizeMs);
+      const bucketStart = firstTs + slot * bucketSizeMs;
+      const existing =
+        bucketMap.get(slot) ??
+        { start: bucketStart, end: bucketStart + bucketSizeMs, scoreByAgent: new Map<string, number>(), total: 0 };
+
+      const text = `${event.type} ${event.message}`.toLowerCase();
+      const weight = event.level === 'error' ? 3 : event.level === 'warning' ? 2 : 1;
+      const mentioned = lowerAgentNames.filter((agent) => text.includes(agent.name));
+
+      if (mentioned.length > 0) {
+        for (const agent of mentioned) {
+          existing.scoreByAgent.set(agent.id, (existing.scoreByAgent.get(agent.id) ?? 0) + weight);
+        }
+      } else {
+        existing.total += weight;
+      }
+
+      existing.total += weight;
+      bucketMap.set(slot, existing);
+    }
+
+    const buckets = [...bucketMap.values()]
+      .sort((a, b) => a.start - b.start)
+      .slice(-12)
+      .map((bucket) => {
+        const leader = [...bucket.scoreByAgent.entries()].sort((a, b) => b[1] - a[1])[0];
+        const leaderName = leader ? agents.find((agent) => agent.id === leader[0])?.name ?? 'Unknown' : 'General';
+        return {
+          key: `${bucket.start}`,
+          label: new Date(bucket.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          total: bucket.total,
+          leaderName,
+          leaderScore: leader?.[1] ?? 0
+        };
+      });
+
+    return {
+      buckets,
+      maxScore: buckets.reduce((max, item) => Math.max(max, item.total), 0)
+    };
+  }, [agents, filteredEvents, timeRange]);
+
+  const playbackSnapshot = useMemo(() => {
+    if (!activeEvent || filteredEvents.length === 0) {
+      return null;
+    }
+
+    const windowEvents = filteredEvents.slice(0, timelineIndex + 1);
+    const first = windowEvents[0];
+    const last = windowEvents[windowEvents.length - 1];
+    const firstTs = new Date(first.timestamp).getTime();
+    const lastTs = new Date(last.timestamp).getTime();
+    const elapsedMinutes = Math.max(0, Math.round((lastTs - firstTs) / 60000));
+
+    const levelCounts: Record<EventLevel, number> = { info: 0, warning: 0, error: 0 };
+    const typeCounts = new Map<string, number>();
+    const lowerAgentNames = agents.map((agent) => ({ id: agent.id, name: agent.name.toLowerCase() }));
+    const mentionedAgents = new Set<string>();
+
+    for (const event of windowEvents) {
+      levelCounts[event.level] += 1;
+      typeCounts.set(event.type, (typeCounts.get(event.type) ?? 0) + 1);
+
+      const text = `${event.type} ${event.message}`.toLowerCase();
+      lowerAgentNames.forEach((agent) => {
+        if (text.includes(agent.name)) {
+          mentionedAgents.add(agent.id);
+        }
+      });
+    }
+
+    const topType = [...typeCounts.entries()].sort((a, b) => b[1] - a[1])[0];
+
+    return {
+      totalEvents: windowEvents.length,
+      elapsedMinutes,
+      levelCounts,
+      uniqueAgentsInvolved: mentionedAgents.size,
+      topType: topType ? `${topType[0]} (${topType[1]})` : 'N/A',
+      windowStart: new Date(first.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      windowEnd: new Date(last.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+  }, [activeEvent, agents, filteredEvents, timelineIndex]);
+
   return (
     <section className="space-y-4">
       <Card title="Derived Metrics">
@@ -262,6 +369,34 @@ export default function AnalyticsPage() {
                     {collaborationHotspots.pairList.map((pair) => (
                       <div key={pair.id} className="rounded border border-slate-800 bg-slate-900/50 px-2 py-1 text-slate-300">
                         {pair.left} ↔ {pair.right} <span className="text-cyan-300">({pair.score})</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <p className="mb-2 text-xs font-semibold text-slate-300">Hotspot Trend (time buckets)</p>
+                {hotspotTrend.buckets.length === 0 ? (
+                  <p className="text-xs text-slate-400">Not enough event data for a trend yet.</p>
+                ) : (
+                  <div className="space-y-1">
+                    {hotspotTrend.buckets.map((bucket) => (
+                      <div key={bucket.key} className="rounded border border-slate-800 bg-slate-900/50 px-2 py-1">
+                        <div className="mb-1 flex items-center justify-between text-[11px] text-slate-400">
+                          <span>{bucket.label}</span>
+                          <span>
+                            Lead {bucket.leaderName} {bucket.leaderScore > 0 ? `(${bucket.leaderScore})` : ''}
+                          </span>
+                        </div>
+                        <div className="h-1.5 overflow-hidden rounded bg-slate-800">
+                          <div
+                            className="h-full bg-cyan-500/80"
+                            style={{
+                              width: `${hotspotTrend.maxScore > 0 ? Math.max(4, (bucket.total / hotspotTrend.maxScore) * 100) : 0}%`
+                            }}
+                          />
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -381,6 +516,35 @@ export default function AnalyticsPage() {
                   style={{ width: `${filteredEvents.length > 1 ? (timelineIndex / (filteredEvents.length - 1)) * 100 : filteredEvents.length === 1 ? 100 : 0}%` }}
                 />
               </div>
+
+              {playbackSnapshot && (
+                <div className="rounded border border-slate-800 bg-slate-900/50 p-2">
+                  <p className="mb-2 text-xs font-semibold text-slate-300">Range Snapshot</p>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <div className="rounded border border-slate-800 bg-slate-950/40 p-2 text-xs text-slate-300">
+                      <p className="text-slate-400">Window</p>
+                      <p className="mt-1 font-medium text-cyan-200">
+                        {playbackSnapshot.windowStart} → {playbackSnapshot.windowEnd}
+                      </p>
+                      <p className="text-[11px] text-slate-500">{playbackSnapshot.elapsedMinutes} min elapsed</p>
+                    </div>
+                    <div className="rounded border border-slate-800 bg-slate-950/40 p-2 text-xs text-slate-300">
+                      <p className="text-slate-400">Events / Agents</p>
+                      <p className="mt-1 font-medium text-cyan-200">
+                        {playbackSnapshot.totalEvents} / {playbackSnapshot.uniqueAgentsInvolved}
+                      </p>
+                      <p className="text-[11px] text-slate-500">events in played range / unique agents mentioned</p>
+                    </div>
+                    <div className="rounded border border-slate-800 bg-slate-950/40 p-2 text-xs text-slate-300">
+                      <p className="text-slate-400">Top Event Type</p>
+                      <p className="mt-1 font-medium text-cyan-200">{playbackSnapshot.topType}</p>
+                      <p className="text-[11px] text-slate-500">
+                        I {playbackSnapshot.levelCounts.info} · W {playbackSnapshot.levelCounts.warning} · E {playbackSnapshot.levelCounts.error}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {activeEvent ? (
                 <article className="rounded border border-slate-800 bg-slate-900/50 p-3 text-sm">

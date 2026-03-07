@@ -89,9 +89,18 @@ What it checks:
 
 1. Frontend routes return HTTP 200 for:
    - `/`, `/agents`, `/tasks`, `/events`, `/office`, `/analytics`
-2. Backend endpoints return HTTP 200 and `success: true` envelope:
+2. Frontend route content assertions (HTML includes stable labels):
+   - Shared shell labels: `ClawVille Office`, `Overview`, `Agents`, `Tasks`, `Events`, `Analytics`, `Office`
+   - Route-specific labels:
+     - `/` → `System Snapshot`, `Recent Events`
+     - `/agents` → `Agents`, `Search name or role`
+     - `/tasks` → `Tasks`, `Search tasks`
+     - `/events` → `Event Timeline`, `All levels`
+     - `/office` → `Office View`, `Office Map`, `Collaboration Signals`
+     - `/analytics` → `Derived Metrics`, `Incident Playback`
+3. Backend endpoints return HTTP 200 and `success: true` envelope:
    - `/api/health`, `/api/overview`, `/api/agents`, `/api/tasks`, `/api/events?limit=5`
-3. Health endpoint includes `data.ok: true`
+4. Health endpoint includes `data.ok: true`
 
 ### Optional custom base URLs
 
