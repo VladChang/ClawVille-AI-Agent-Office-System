@@ -13,6 +13,16 @@ const playbackStepMs = 1200;
 type TimeRangeFilter = '1h' | '6h' | '24h' | 'all';
 type LevelFilter = 'all' | EventLevel;
 
+type MetricTone = 'neutral' | 'good' | 'warn' | 'danger';
+
+interface MetricCard {
+  label: string;
+  value: string;
+  sub: string;
+  tone: MetricTone;
+  priority: number;
+}
+
 const timeRangeOptions: Array<{ value: TimeRangeFilter; label: string }> = [
   { value: '1h', label: 'Last 1h' },
   { value: '6h', label: 'Last 6h' },
@@ -144,7 +154,24 @@ export default function AnalyticsPage() {
           )
         : 0;
 
-    return [
+    const metricCards: MetricCard[] = [
+      {
+        label: 'Error Rate',
+        value: `${derived.errorRate.percentage}%`,
+        sub: metricDeltaLabel(
+          derived.errorRate.errorCount,
+          windowCompare.previousEvents.filter((event) => event.level === 'error').length
+        ),
+        tone: derived.errorRate.percentage >= 20 ? 'danger' : derived.errorRate.percentage >= 8 ? 'warn' : 'good',
+        priority: 1
+      },
+      {
+        label: 'Avg Wait Time',
+        value: `${derived.averageWaitTime.valueMinutes}m`,
+        sub: `${derived.averageWaitTime.taskCount} todo/blocked tasks`,
+        tone: derived.averageWaitTime.valueMinutes >= 45 ? 'warn' : 'neutral',
+        priority: 2
+      },
       {
         label: 'Task Completion',
         value: `${completionRate}%`,
@@ -154,7 +181,9 @@ export default function AnalyticsPage() {
             ? Math.round((windowCompare.previousTasks.filter((task) => task.status === 'done').length / windowCompare.previousTasks.length) * 100)
             : completionRate,
           '%'
-        )
+        ),
+        tone: completionRate >= 80 ? 'good' : completionRate >= 50 ? 'neutral' : 'warn',
+        priority: 3
       },
       {
         label: 'Agent Utilization',
@@ -174,28 +203,28 @@ export default function AnalyticsPage() {
               )
             : 0,
           '%'
-        )
+        ),
+        tone: utilization >= 85 ? 'warn' : utilization >= 40 ? 'good' : 'neutral',
+        priority: 4
       },
       {
         label: 'Busiest Agent',
         value: derived.busiestAgent?.name ?? 'N/A',
-        sub: derived.busiestAgent ? `${derived.busiestAgent.activeTaskCount} active tasks` : 'No active tasks'
+        sub: derived.busiestAgent ? `${derived.busiestAgent.activeTaskCount} active tasks` : 'No active tasks',
+        tone: 'neutral',
+        priority: 5
       },
       {
-        label: 'Avg Wait Time',
-        value: `${derived.averageWaitTime.valueMinutes}m`,
-        sub: `${derived.averageWaitTime.taskCount} todo/blocked tasks`
-      },
-      {
-        label: 'Error Rate',
-        value: `${derived.errorRate.percentage}%`,
-        sub: metricDeltaLabel(
-          derived.errorRate.errorCount,
-          windowCompare.previousEvents.filter((event) => event.level === 'error').length
-        )
-      },
-      { label: 'Mean Event Gap', value: `${mtbeMinutes}m`, sub: 'Average minutes between events' }
+        label: 'Mean Event Gap',
+        value: `${mtbeMinutes}m`,
+        sub: 'Average minutes between events',
+        tone: 'neutral',
+        priority: 6
+      }
     ];
+
+    return metricCards.sort((a, b) => a.priority - b.priority);
+
   }, [agents, tasks, events, sortedEvents, windowCompare]);
 
   const collaborationHotspots = useMemo(() => {
@@ -398,13 +427,32 @@ export default function AnalyticsPage() {
           <EmptyState title="No analytics data yet" detail="Waiting for tasks/events to compute derived metrics." />
         ) : (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {metrics.map((metric) => (
-              <div key={metric.label} className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
-                <p className="text-xs uppercase tracking-wide text-slate-400">{metric.label}</p>
-                <p className="mt-1 text-2xl font-semibold text-cyan-300">{metric.value}</p>
-                <p className="mt-1 text-xs text-slate-400">{metric.sub}</p>
-              </div>
-            ))}
+            {metrics.map((metric) => {
+              const toneClass =
+                metric.tone === 'danger'
+                  ? 'border-rose-800/80 bg-rose-950/20'
+                  : metric.tone === 'warn'
+                    ? 'border-amber-700/70 bg-amber-950/10'
+                    : metric.tone === 'good'
+                      ? 'border-emerald-700/60 bg-emerald-950/10'
+                      : 'border-slate-800 bg-slate-900/60';
+              const valueClass =
+                metric.tone === 'danger'
+                  ? 'text-rose-300'
+                  : metric.tone === 'warn'
+                    ? 'text-amber-300'
+                    : metric.tone === 'good'
+                      ? 'text-emerald-300'
+                      : 'text-cyan-300';
+
+              return (
+                <div key={metric.label} className={`rounded-lg border p-3 ${toneClass}`}>
+                  <p className="text-xs uppercase tracking-wide text-slate-400">{metric.label}</p>
+                  <p className={`mt-1 text-2xl font-semibold ${valueClass}`}>{metric.value}</p>
+                  <p className="mt-1 text-xs text-slate-400">{metric.sub}</p>
+                </div>
+              );
+            })}
           </div>
         )}
       </Card>
