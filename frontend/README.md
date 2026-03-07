@@ -21,6 +21,14 @@ Default app URL: `http://localhost:3000`
 
 Mock data is fallback-only in development (or forced with `NEXT_PUBLIC_USE_MOCK_API=true`).
 
+## Tests
+
+```bash
+npm run test
+```
+
+Covers frontend logic for schema normalization and analytics metric calculations.
+
 ## Build
 
 ```bash

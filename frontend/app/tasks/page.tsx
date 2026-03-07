@@ -1,23 +1,28 @@
 'use client';
 
 import { Badge, Card } from '@/components/ui';
+import { DataHealthBanner, EmptyState } from '@/components/dataState';
 import { useDashboardStore } from '@/store/dashboardStore';
 
 export default function TasksPage() {
-  const { tasks, agents, taskSearch, setTaskSearch, loading, error } = useDashboardStore((s) => ({
+  const { tasks, agents, taskSearch, setTaskSearch, loading, error, connectionStatus, connectionMessage } = useDashboardStore((s) => ({
     tasks: s.tasks,
     agents: s.agents,
     taskSearch: s.taskSearch,
     setTaskSearch: s.setTaskSearch,
     loading: s.loading,
-    error: s.error
+    error: s.error,
+    connectionStatus: s.connectionStatus,
+    connectionMessage: s.connectionMessage
   }));
 
   const filtered = tasks.filter((task) => task.title.toLowerCase().includes(taskSearch.toLowerCase()));
 
+  const hasData = tasks.length > 0;
+
   return (
     <Card title="Tasks">
-      {error && <p className="mb-3 rounded border border-rose-800 bg-rose-950/40 p-2 text-sm text-rose-200">{error}</p>}
+      <DataHealthBanner error={error} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
 
       <input
         value={taskSearch}
@@ -26,8 +31,13 @@ export default function TasksPage() {
         className="mb-3 rounded border border-slate-700 bg-slate-950 px-3 py-1 text-sm"
       />
 
-      {loading ? (
+      {loading && !hasData ? (
         <p className="text-sm text-slate-400">Loading tasks…</p>
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          title={hasData ? 'No tasks match current search' : 'No tasks available'}
+          detail={hasData ? 'Try a different search keyword.' : 'Waiting for tasks from API/realtime snapshot.'}
+        />
       ) : (
         <div className="space-y-2">
           {filtered.map((task) => (

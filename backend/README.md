@@ -36,7 +36,8 @@ Defaults:
 - `npm run dev` — watch mode
 - `npm run build` — compile TypeScript
 - `npm start` — run compiled server
-- `npm run check` — type-check only
+- `npm run test` — run backend API tests (Node test runner via `tsx`)
+- `npm run check` — type-check + tests
 
 ## REST Endpoints
 

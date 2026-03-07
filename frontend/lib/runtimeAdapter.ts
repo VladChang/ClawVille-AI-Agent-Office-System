@@ -34,8 +34,12 @@ function connectRealDashboardWs(onMessage: (payload: SnapshotPayload) => void): 
   const socket = new WebSocket(wsUrl);
 
   socket.onmessage = (event) => {
-    const payload = JSON.parse(event.data) as SnapshotPayload;
-    onMessage(payload);
+    try {
+      const payload = JSON.parse(event.data) as SnapshotPayload;
+      onMessage(payload);
+    } catch {
+      // Ignore malformed messages and keep stream alive.
+    }
   };
 
   return socket;
@@ -82,15 +86,18 @@ export interface RuntimeAdapter {
 
 function createMockSocket(onMessage: (payload: SnapshotPayload) => void): WebSocket {
   const socket = {
-    readyState: WebSocket.OPEN,
+    readyState: WebSocket.CONNECTING,
     onerror: null,
     onclose: null,
+    onopen: null,
     close: () => {
       if (socket.onclose) socket.onclose({} as CloseEvent);
     }
   } as unknown as WebSocket;
 
   queueMicrotask(() => {
+    if (socket.onopen) socket.onopen({} as globalThis.Event);
+
     onMessage({
       type: 'snapshot',
       data: {

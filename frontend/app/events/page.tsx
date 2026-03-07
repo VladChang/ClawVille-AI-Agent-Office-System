@@ -1,22 +1,27 @@
 'use client';
 
 import { Badge, Card } from '@/components/ui';
+import { DataHealthBanner, EmptyState } from '@/components/dataState';
 import { useDashboardStore } from '@/store/dashboardStore';
 
 export default function EventsPage() {
-  const { events, eventLevelFilter, setEventLevelFilter, loading, error } = useDashboardStore((s) => ({
+  const { events, eventLevelFilter, setEventLevelFilter, loading, error, connectionStatus, connectionMessage } = useDashboardStore((s) => ({
     events: s.events,
     eventLevelFilter: s.eventLevelFilter,
     setEventLevelFilter: s.setEventLevelFilter,
     loading: s.loading,
-    error: s.error
+    error: s.error,
+    connectionStatus: s.connectionStatus,
+    connectionMessage: s.connectionMessage
   }));
 
   const filtered = events.filter((event) => eventLevelFilter === 'all' || event.level === eventLevelFilter);
 
+  const hasData = events.length > 0;
+
   return (
     <Card title="Event Timeline">
-      {error && <p className="mb-3 rounded border border-rose-800 bg-rose-950/40 p-2 text-sm text-rose-200">{error}</p>}
+      <DataHealthBanner error={error} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
 
       <select
         value={eventLevelFilter}
@@ -29,8 +34,13 @@ export default function EventsPage() {
         <option value="error">Error</option>
       </select>
 
-      {loading ? (
+      {loading && !hasData ? (
         <p className="text-sm text-slate-400">Loading events…</p>
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          title={hasData ? 'No events match current level filter' : 'No events available'}
+          detail={hasData ? 'Try switching to "All levels".' : 'Waiting for realtime timeline updates.'}
+        />
       ) : (
         <div className="max-h-[60vh] space-y-2 overflow-auto pr-1">
           {filtered.map((event) => (

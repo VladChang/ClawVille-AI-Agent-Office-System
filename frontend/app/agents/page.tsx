@@ -1,23 +1,37 @@
 'use client';
 
 import { Badge, Card } from '@/components/ui';
+import { DataHealthBanner, EmptyState } from '@/components/dataState';
 import { useDashboardStore } from '@/store/dashboardStore';
 
 export default function AgentsPage() {
-  const { agents, tasks, agentSearch, agentStatusFilter, setAgentSearch, setAgentStatusFilter, selectAgent, selectedAgentId, loading, error } = useDashboardStore(
-    (s) => ({
-      agents: s.agents,
-      tasks: s.tasks,
-      agentSearch: s.agentSearch,
-      agentStatusFilter: s.agentStatusFilter,
-      setAgentSearch: s.setAgentSearch,
-      setAgentStatusFilter: s.setAgentStatusFilter,
-      selectAgent: s.selectAgent,
-      selectedAgentId: s.selectedAgentId,
-      loading: s.loading,
-      error: s.error
-    })
-  );
+  const {
+    agents,
+    tasks,
+    agentSearch,
+    agentStatusFilter,
+    setAgentSearch,
+    setAgentStatusFilter,
+    selectAgent,
+    selectedAgentId,
+    loading,
+    error,
+    connectionStatus,
+    connectionMessage
+  } = useDashboardStore((s) => ({
+    agents: s.agents,
+    tasks: s.tasks,
+    agentSearch: s.agentSearch,
+    agentStatusFilter: s.agentStatusFilter,
+    setAgentSearch: s.setAgentSearch,
+    setAgentStatusFilter: s.setAgentStatusFilter,
+    selectAgent: s.selectAgent,
+    selectedAgentId: s.selectedAgentId,
+    loading: s.loading,
+    error: s.error,
+    connectionStatus: s.connectionStatus,
+    connectionMessage: s.connectionMessage
+  }));
 
   const filtered = agents.filter((agent) => {
     const matchesSearch = `${agent.name} ${agent.role}`.toLowerCase().includes(agentSearch.toLowerCase());
@@ -25,9 +39,11 @@ export default function AgentsPage() {
     return matchesSearch && matchesStatus;
   });
 
+  const hasData = agents.length > 0;
+
   return (
     <Card title="Agents">
-      {error && <p className="mb-3 rounded border border-rose-800 bg-rose-950/40 p-2 text-sm text-rose-200">{error}</p>}
+      <DataHealthBanner error={error} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
 
       <div className="mb-3 flex flex-wrap gap-2">
         <input
@@ -48,8 +64,13 @@ export default function AgentsPage() {
         </select>
       </div>
 
-      {loading ? (
+      {loading && !hasData ? (
         <p className="text-sm text-slate-400">Loading agents…</p>
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          title={hasData ? 'No agents match current filters' : 'No agents available'}
+          detail={hasData ? 'Try clearing search or status filters.' : 'Waiting for agent data from API/realtime snapshot.'}
+        />
       ) : (
         <div className="space-y-2">
           {filtered.map((agent) => {

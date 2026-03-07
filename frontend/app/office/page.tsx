@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { Card, Badge } from '@/components/ui';
+import { DataHealthBanner, EmptyState } from '@/components/dataState';
 import { useDashboardStore } from '@/store/dashboardStore';
 import type { Agent, AgentStatus } from '@/types/models';
 
@@ -56,11 +57,13 @@ function thoughtSummary(agent: Agent, taskTitle?: string): string {
 }
 
 export default function OfficePage() {
-  const { agents, tasks, loading, error, selectAgent, selectedAgentId } = useDashboardStore((s) => ({
+  const { agents, tasks, loading, error, connectionStatus, connectionMessage, selectAgent, selectedAgentId } = useDashboardStore((s) => ({
     agents: s.agents,
     tasks: s.tasks,
     loading: s.loading,
     error: s.error,
+    connectionStatus: s.connectionStatus,
+    connectionMessage: s.connectionMessage,
     selectAgent: s.selectAgent,
     selectedAgentId: s.selectedAgentId
   }));
@@ -140,15 +143,16 @@ export default function OfficePage() {
         </div>
       </Card>
 
-      {loading && <p className="text-sm text-slate-300">Loading office state...</p>}
-      {error && <p className="rounded border border-rose-500/30 bg-rose-500/10 p-2 text-sm text-rose-200">{error}</p>}
+      {loading && agents.length === 0 && <p className="text-sm text-slate-300">Loading office state...</p>}
+      <DataHealthBanner error={error} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
 
       <Card title="Office Map">
         <div className="mb-2 text-xs text-slate-400">Tip: click any avatar to sync highlight with Agents list and open control drawer.</div>
         {agents.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900/30 p-6 text-sm text-slate-400">
-            No agent data yet. Keep backend running and wait for the first realtime snapshot.
-          </div>
+          <EmptyState
+            title="No agent data yet"
+            detail="Keep backend running and wait for the first realtime snapshot or local fallback payload."
+          />
         ) : (
         <div className="relative h-[430px] w-full overflow-hidden rounded-xl border border-slate-800 bg-slate-950 md:h-[560px]">
           {roomOrder.map((room) => {

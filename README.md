@@ -150,7 +150,14 @@ Frontend defaults:
 - `NEXT_PUBLIC_API_BASE_URL=http://localhost:3001/api`
 - `NEXT_PUBLIC_WS_URL=ws://localhost:3001/ws`
 
-### 3) Build check
+### 3) Run tests
+
+```bash
+cd backend && npm run test
+cd ../frontend && npm run test
+```
+
+### 4) Build check
 
 ```bash
 cd backend && npm run build

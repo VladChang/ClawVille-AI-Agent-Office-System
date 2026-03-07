@@ -42,7 +42,21 @@ Use this checklist before tagging/releasing Sprint 4.
 - [ ] Analytics incident playback controls work (Prev/Play/Next/Reset)
 - [ ] No blocking console/runtime errors on core routes
 
-## 6) Scripted acceptance (optional but recommended)
+## 6) Resilience + degraded-mode acceptance
+
+- [ ] All core pages (`/`, `/agents`, `/tasks`, `/events`, `/office`, `/analytics`) show consistent state UX:
+  - [ ] Loading state shown only before first dataset arrives
+  - [ ] Empty state shown when list/scope has no rows
+  - [ ] Degraded/disconnected banner shown when realtime channel is unstable/offline
+- [ ] Realtime status appears in summary bar (`connected`, `connecting`, `degraded`, `disconnected`)
+- [ ] Simulate WebSocket interruption (stop backend WS / network block) and confirm:
+  - [ ] Existing data remains visible (no hard blank)
+  - [ ] UI shows retry countdown message
+  - [ ] Client attempts reconnect with exponential backoff
+  - [ ] Status returns to `connected` once WS recovers
+- [ ] Local fallback mode still loads dashboard lists when API is temporarily unavailable (`NEXT_PUBLIC_RUNTIME_MODE=local`)
+
+## 7) Scripted acceptance (optional but recommended)
 
 With backend (`:3001`) and frontend (`:3000`) already running:
 
@@ -53,7 +67,7 @@ npm run acceptance:e2e
 
 - [ ] Script completes with `All smoke checks passed.`
 
-## 7) Release readiness sign-off
+## 8) Release readiness sign-off
 
 - [ ] Release notes updated
 - [ ] Known issues documented (if any)

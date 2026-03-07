@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Badge, Card } from '@/components/ui';
+import { DataHealthBanner, EmptyState } from '@/components/dataState';
 import { getDashboardDerivedMetrics } from '@/lib/analytics';
 import { getEventLevelWeight } from '@/lib/schema';
 import { useDashboardStore } from '@/store/dashboardStore';
@@ -22,12 +23,14 @@ const timeRangeOptions: Array<{ value: TimeRangeFilter; label: string }> = [
 const speedOptions = [0.5, 1, 1.5, 2, 3, 4];
 
 export default function AnalyticsPage() {
-  const { agents, tasks, events, loading, error } = useDashboardStore((s) => ({
+  const { agents, tasks, events, loading, error, connectionStatus, connectionMessage } = useDashboardStore((s) => ({
     agents: s.agents,
     tasks: s.tasks,
     events: s.events,
     loading: s.loading,
-    error: s.error
+    error: s.error,
+    connectionStatus: s.connectionStatus,
+    connectionMessage: s.connectionMessage
   }));
 
   const [timelineIndex, setTimelineIndex] = useState(0);
@@ -318,12 +321,16 @@ export default function AnalyticsPage() {
     };
   }, [activeEvent, agents, filteredEvents, timelineIndex]);
 
+  const hasData = events.length > 0 || tasks.length > 0 || agents.length > 0;
+
   return (
     <section className="space-y-4">
       <Card title="Derived Metrics">
-        {error && <p className="mb-3 rounded border border-rose-800 bg-rose-950/40 p-2 text-sm text-rose-200">{error}</p>}
-        {loading ? (
+        <DataHealthBanner error={error} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
+        {loading && !hasData ? (
           <p className="text-sm text-slate-400">Calculating analytics…</p>
+        ) : !hasData ? (
+          <EmptyState title="No analytics data yet" detail="Waiting for tasks/events to compute derived metrics." />
         ) : (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {metrics.map((metric) => (
