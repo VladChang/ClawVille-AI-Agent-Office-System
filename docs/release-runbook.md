@@ -18,7 +18,7 @@ scripts/release/tagged-release.sh vX.Y.Z --dry-run
 Dry-run performs:
 - backend `npm run check && npm run build`
 - frontend `npm run test && npm run build`
-- acceptance smoke with `/api/ready` + `/api/metrics` checks enabled
+- acceptance smoke with `/api/ready` + `/api/metrics` checks enabled (`scripts/release/smoke-check.sh`)
 
 No git tag is created during dry-run.
 
@@ -42,6 +42,17 @@ This re-runs preflight and only then:
 
 If regression is detected:
 1. Stop rollout/traffic shift.
-2. Redeploy previous known-good tag.
-3. Record incident details and root-cause follow-up.
-4. Publish a superseding fix tag (do not rewrite or delete history tags unless policy explicitly requires it).
+2. Identify previous known-good tag:
+   ```bash
+   git tag --sort=-creatordate | head
+   ```
+3. Redeploy previous known-good tag (example):
+   ```bash
+   git checkout <previous-tag>
+   ```
+4. Re-run smoke checks on rollback candidate:
+   ```bash
+   scripts/release/smoke-check.sh
+   ```
+5. Record incident details and root-cause follow-up.
+6. Publish a superseding fix tag (do not rewrite or delete history tags unless policy explicitly requires it).

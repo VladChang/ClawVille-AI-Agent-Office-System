@@ -1,7 +1,7 @@
 'use client';
 
 import { Card, Badge } from '@/components/ui';
-import { DataHealthBanner, EmptyState } from '@/components/dataState';
+import { DataHealthBanner, EmptyState, SkeletonLines } from '@/components/dataState';
 import { getDashboardDerivedMetrics } from '@/lib/analytics';
 import { isErrorLevel } from '@/lib/schema';
 import { useDashboardStore } from '@/store/dashboardStore';
@@ -21,15 +21,14 @@ export default function OverviewPage() {
 
   const hasData = agents.length > 0 || tasks.length > 0 || events.length > 0;
 
-  if (loading && !hasData) {
-    return <p className="text-sm text-slate-400">Loading dashboard…</p>;
-  }
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <Card title="System Snapshot">
         <DataHealthBanner error={error} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
-        {!hasData ? (
+        {loading && !hasData ? (
+          <SkeletonLines rows={7} />
+        ) : !hasData ? (
           <EmptyState
             title="No dashboard data yet"
             detail="Waiting for initial snapshot. If backend is offline, local fallback data will appear when available."
@@ -67,7 +66,9 @@ export default function OverviewPage() {
       </Card>
 
       <Card title="Recent Events">
-        {events.length === 0 ? (
+        {loading && events.length === 0 ? (
+          <SkeletonLines rows={4} />
+        ) : events.length === 0 ? (
           <EmptyState title="No events yet" detail="Realtime timeline is empty right now." />
         ) : (
           <div className="space-y-2">

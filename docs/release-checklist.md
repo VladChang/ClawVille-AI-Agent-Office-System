@@ -50,6 +50,12 @@ Use this checklist before creating a release tag.
 With backend (`:3001`) and frontend (`:3000`) running:
 
 ```bash
+scripts/release/smoke-check.sh
+```
+
+(Equivalent manual command)
+
+```bash
 cd frontend
 ACCEPTANCE_CHECK_READY=true ACCEPTANCE_READY_MODE=graceful ACCEPTANCE_CHECK_METRICS=true npm run acceptance:e2e
 ```

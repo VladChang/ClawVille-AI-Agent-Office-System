@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Badge, Card } from '@/components/ui';
-import { DataHealthBanner, EmptyState } from '@/components/dataState';
+import { DataHealthBanner, EmptyState, SkeletonLines } from '@/components/dataState';
 import { getDashboardDerivedMetrics } from '@/lib/analytics';
 import { getEventLevelWeight } from '@/lib/schema';
 import { useDashboardStore } from '@/store/dashboardStore';
@@ -21,6 +21,24 @@ const timeRangeOptions: Array<{ value: TimeRangeFilter; label: string }> = [
 ];
 
 const speedOptions = [0.5, 1, 1.5, 2, 3, 4];
+
+function getRangeDurationMs(timeRange: TimeRangeFilter): number | null {
+  if (timeRange === 'all') return null;
+  return (
+    {
+      '1h': 60 * 60 * 1000,
+      '6h': 6 * 60 * 60 * 1000,
+      '24h': 24 * 60 * 60 * 1000
+    }[timeRange] ?? null
+  );
+}
+
+function metricDeltaLabel(current: number, previous: number, suffix = ''): string {
+  if (current === previous) return `Flat (${current}${suffix})`;
+  const diff = Math.abs(current - previous);
+  const direction = current > previous ? '↑' : '↓';
+  return `${direction} ${diff}${suffix} vs previous window`;
+}
 
 export default function AnalyticsPage() {
   const { agents, tasks, events, loading, error, connectionStatus, connectionMessage } = useDashboardStore((s) => ({
@@ -46,16 +64,8 @@ export default function AnalyticsPage() {
 
   const filteredEvents = useMemo(() => {
     const now = Date.now();
-    const rangeStart =
-      timeRange === 'all'
-        ? Number.NEGATIVE_INFINITY
-        : now -
-          {
-            '1h': 60 * 60 * 1000,
-            '6h': 6 * 60 * 60 * 1000,
-            '24h': 24 * 60 * 60 * 1000,
-            all: Number.MAX_SAFE_INTEGER
-          }[timeRange];
+    const durationMs = getRangeDurationMs(timeRange);
+    const rangeStart = durationMs === null ? Number.NEGATIVE_INFINITY : now - durationMs;
 
     return sortedEvents.filter((event) => {
       const ts = new Date(event.timestamp).getTime();
@@ -89,6 +99,29 @@ export default function AnalyticsPage() {
 
   const activeEvent = filteredEvents[timelineIndex];
 
+  const windowCompare = useMemo(() => {
+    const durationMs = getRangeDurationMs(timeRange);
+    if (durationMs === null) {
+      return { previousEvents: [] as typeof filteredEvents, previousTasks: [] as typeof tasks };
+    }
+
+    const now = Date.now();
+    const currentStart = now - durationMs;
+    const previousStart = currentStart - durationMs;
+
+    const previousEvents = sortedEvents.filter((event) => {
+      const ts = new Date(event.timestamp).getTime();
+      return ts >= previousStart && ts < currentStart && (levelFilter === 'all' || event.level === levelFilter);
+    });
+
+    const previousTasks = tasks.filter((task) => {
+      const ts = new Date(task.updatedAt).getTime();
+      return ts >= previousStart && ts < currentStart;
+    });
+
+    return { previousEvents, previousTasks };
+  }, [timeRange, sortedEvents, levelFilter, tasks]);
+
   const metrics = useMemo(() => {
     const doneTasks = tasks.filter((task) => task.status === 'done').length;
     const completionRate = tasks.length ? Math.round((doneTasks / tasks.length) * 100) : 0;
@@ -112,8 +145,37 @@ export default function AnalyticsPage() {
         : 0;
 
     return [
-      { label: 'Task Completion', value: `${completionRate}%`, sub: `${doneTasks}/${tasks.length} done` },
-      { label: 'Agent Utilization', value: `${utilization}%`, sub: `${busyAgents}/${agents.length} busy` },
+      {
+        label: 'Task Completion',
+        value: `${completionRate}%`,
+        sub: metricDeltaLabel(
+          completionRate,
+          windowCompare.previousTasks.length
+            ? Math.round((windowCompare.previousTasks.filter((task) => task.status === 'done').length / windowCompare.previousTasks.length) * 100)
+            : completionRate,
+          '%'
+        )
+      },
+      {
+        label: 'Agent Utilization',
+        value: `${utilization}%`,
+        sub: metricDeltaLabel(
+          utilization,
+          agents.length
+            ? Math.round(
+                (new Set(
+                  windowCompare.previousTasks
+                    .filter((task) => task.status === 'in_progress' || task.status === 'blocked')
+                    .map((task) => task.assigneeAgentId)
+                    .filter((id): id is string => Boolean(id))
+                ).size /
+                  agents.length) *
+                  100
+              )
+            : 0,
+          '%'
+        )
+      },
       {
         label: 'Busiest Agent',
         value: derived.busiestAgent?.name ?? 'N/A',
@@ -127,11 +189,14 @@ export default function AnalyticsPage() {
       {
         label: 'Error Rate',
         value: `${derived.errorRate.percentage}%`,
-        sub: `${derived.errorRate.errorCount}/${derived.errorRate.totalCount} events`
+        sub: metricDeltaLabel(
+          derived.errorRate.errorCount,
+          windowCompare.previousEvents.filter((event) => event.level === 'error').length
+        )
       },
       { label: 'Mean Event Gap', value: `${mtbeMinutes}m`, sub: 'Average minutes between events' }
     ];
-  }, [agents, tasks, events, sortedEvents]);
+  }, [agents, tasks, events, sortedEvents, windowCompare]);
 
   const collaborationHotspots = useMemo(() => {
     const mentionsByAgent = new Map<string, number>();
@@ -328,7 +393,7 @@ export default function AnalyticsPage() {
       <Card title="Derived Metrics">
         <DataHealthBanner error={error} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
         {loading && !hasData ? (
-          <p className="text-sm text-slate-400">Calculating analytics…</p>
+          <SkeletonLines rows={6} />
         ) : !hasData ? (
           <EmptyState title="No analytics data yet" detail="Waiting for tasks/events to compute derived metrics." />
         ) : (
@@ -514,6 +579,35 @@ export default function AnalyticsPage() {
                   disabled={filteredEvents.length === 0}
                 >
                   Reset
+                </button>
+                <button
+                  onClick={() => {
+                    const idx = filteredEvents.findIndex((event) => event.level === 'warning' || event.level === 'error');
+                    if (idx >= 0) {
+                      setIsPlaying(false);
+                      setTimelineIndex(idx);
+                    }
+                  }}
+                  className="rounded border border-amber-700 bg-amber-500/10 px-3 py-1 text-xs text-amber-200 hover:bg-amber-500/20"
+                  disabled={!filteredEvents.some((event) => event.level === 'warning' || event.level === 'error')}
+                >
+                  Jump first alert
+                </button>
+                <button
+                  onClick={() => {
+                    const idx = [...filteredEvents]
+                      .map((event, index) => ({ event, index }))
+                      .reverse()
+                      .find((entry) => entry.event.level === 'error')?.index;
+                    if (typeof idx === 'number') {
+                      setIsPlaying(false);
+                      setTimelineIndex(idx);
+                    }
+                  }}
+                  className="rounded border border-rose-700 bg-rose-500/10 px-3 py-1 text-xs text-rose-200 hover:bg-rose-500/20"
+                  disabled={!filteredEvents.some((event) => event.level === 'error')}
+                >
+                  Jump last error
                 </button>
                 <span className="text-xs text-slate-400">{filteredEvents.length} events in scope</span>
               </div>

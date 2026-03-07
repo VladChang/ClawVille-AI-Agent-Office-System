@@ -44,6 +44,21 @@ export function EmptyState({ title, detail }: { title: string; detail: string })
   );
 }
 
+
+export function SkeletonLines({ rows = 3 }: { rows?: number }) {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: rows }).map((_, index) => (
+        <div
+          key={index}
+          className="h-4 animate-pulse rounded bg-slate-800/80"
+          style={{ width: `${Math.max(45, 100 - index * 12)}%` }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function Notice({ tone, children }: { tone: 'info' | 'warn' | 'error'; children: ReactNode }) {
   const cls =
     tone === 'error'
