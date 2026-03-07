@@ -131,8 +131,10 @@ Detailed boundary rules are documented in `docs/runtime-adapter-contract.md`.
 ## Runtime Adapter Boundary (P1.5)
 
 Realtime publishing now consumes a runtime-source interface (`backend/src/runtime/runtimeSource.ts`) with env-based binding (`RUNTIME_SOURCE=mock|openclaw`).
-Current `openclaw` mode is a Round 2 adapter skeleton with injectable client interface. In strict mode (default), non-configured runtime emits explicit degraded system signaling instead of silently proxying to mock.
+Current `openclaw` mode is wired through a concrete transport abstraction (`backend/src/runtime/openclawTransport.ts`) and runtime-client mapper (`backend/src/runtime/openclawRuntimeSource.ts`).
+In strict mode (default), non-configured runtime emits explicit degraded system signaling instead of silently proxying to mock.
 Set `ALLOW_RUNTIME_FALLBACK=true` only for temporary dev fallback.
+For integration without external runtime, file/env fixtures can be injected (`OPENCLAW_RUNTIME_FIXTURE_PATH` / `OPENCLAW_RUNTIME_FIXTURE_JSON`).
 
 Adapter requirements for future real-runtime mode:
 - `getSnapshot()` must return the same snapshot object shape used by WS `snapshot/state_changed` payloads.

@@ -40,7 +40,7 @@ export async function registerRealtime(app: FastifyInstance): Promise<void> {
 
   app.get('/ws', { websocket: true }, (connection) => {
     const send = (message: RealtimePayload) => {
-      if (connection.socket.readyState === connection.socket.OPEN) {
+      if (connection.socket.readyState === 1) {
         connection.socket.send(JSON.stringify(message));
       }
     };

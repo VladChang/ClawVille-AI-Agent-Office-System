@@ -48,16 +48,19 @@ Backend route handlers now read/write through a `RuntimeSource` abstraction (`ba
 
 Current binding is env-driven via `RUNTIME_SOURCE`:
 - `mock` -> `MockRuntimeSource` (`backend/src/runtime/mockRuntimeSource.ts`)
-- `openclaw` -> `OpenClawRuntimeSource` Round 2 adapter skeleton (`backend/src/runtime/openclawRuntimeSource.ts`)
+- `openclaw` -> `OpenClawRuntimeSource` (`backend/src/runtime/openclawRuntimeSource.ts`) backed by transport abstraction (`backend/src/runtime/openclawTransport.ts`)
 
 OpenClaw runtime env vars:
 - `OPENCLAW_RUNTIME_ENDPOINT`
 - `OPENCLAW_RUNTIME_API_KEY`
+- `OPENCLAW_RUNTIME_FIXTURE_PATH` (integration/dev fixture transport)
+- `OPENCLAW_RUNTIME_FIXTURE_JSON` (inline fixture JSON transport)
 - `ALLOW_RUNTIME_FALLBACK=false` by default (strict mode)
 
-Round 2 behavior:
+Behavior:
 - If runtime client is not configured and fallback is disabled, API returns `503` with `RUNTIME_NOT_CONFIGURED`.
 - If `ALLOW_RUNTIME_FALLBACK=true`, backend can proxy to mock runtime for non-production/dev continuity.
+- If fixture env vars are provided, backend uses fixture transport and maps payloads into the unified dashboard schema for API + websocket parity.
 
 Contract boundary for future adapters:
 - API routes keep the same HTTP paths and response envelope (`success/data/error`)

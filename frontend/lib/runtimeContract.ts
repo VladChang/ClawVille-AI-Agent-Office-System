@@ -1,3 +1,4 @@
+import { isTaskPriority } from '../../shared/contracts';
 import { normalizeAgent, normalizeEvent, normalizeTask } from '@/lib/schema';
 import type { Agent, Event, Task } from '@/types/models';
 
@@ -95,10 +96,7 @@ export function mapRuntimeTask(payload: unknown): Task | null {
   }
 
   const priorityValue = asOptionalString(payload.priority);
-  const priority: Task['priority'] =
-    priorityValue === 'low' || priorityValue === 'medium' || priorityValue === 'high'
-      ? priorityValue
-      : DEFAULT_PRIORITY;
+  const priority: Task['priority'] = isTaskPriority(priorityValue) ? priorityValue : DEFAULT_PRIORITY;
 
   return normalizeTask({
     id,

@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyReply } from 'fastify';
 import { runtimeBinding, runtimeSource } from '../runtime';
-import { TaskStatus } from '../models/types';
+import { AGENT_STATUSES, AgentStatus, TASK_PRIORITIES, TASK_STATUSES, TaskStatus } from '../models/types';
 import { RuntimeSourceUnavailableError } from '../runtime/openclawRuntimeSource';
 import { renderPrometheusMetrics } from '../observability';
 
@@ -19,6 +19,56 @@ function runtimeFailure(reply: FastifyReply, error: RuntimeSourceUnavailableErro
 function isRuntimeUnavailable(error: unknown): error is RuntimeSourceUnavailableError {
   return error instanceof RuntimeSourceUnavailableError;
 }
+
+const idParamsSchema = {
+  type: 'object',
+  required: ['id'],
+  additionalProperties: false,
+  properties: {
+    id: { type: 'string', minLength: 1 }
+  }
+} as const;
+
+const createAgentBodySchema = {
+  type: 'object',
+  required: ['name', 'role'],
+  additionalProperties: false,
+  properties: {
+    name: { type: 'string', minLength: 1 },
+    role: { type: 'string', minLength: 1 },
+    status: { type: 'string', enum: [...AGENT_STATUSES] }
+  }
+} as const;
+
+const createTaskBodySchema = {
+  type: 'object',
+  required: ['title', 'priority'],
+  additionalProperties: false,
+  properties: {
+    title: { type: 'string', minLength: 1 },
+    description: { type: 'string' },
+    assigneeAgentId: { type: 'string', minLength: 1 },
+    status: { type: 'string', enum: [...TASK_STATUSES] },
+    priority: { type: 'string', enum: [...TASK_PRIORITIES] }
+  }
+} as const;
+
+const updateTaskStatusBodySchema = {
+  type: 'object',
+  required: ['status'],
+  additionalProperties: false,
+  properties: {
+    status: { type: 'string', enum: [...TASK_STATUSES] }
+  }
+} as const;
+
+const eventsQuerySchema = {
+  type: 'object',
+  additionalProperties: false,
+  properties: {
+    limit: { type: 'integer', minimum: 1, maximum: 1000 }
+  }
+} as const;
 
 export async function apiRoutes(app: FastifyInstance): Promise<void> {
   app.get('/health', async (_, reply) => ok(reply, { ok: true, ts: new Date().toISOString() }));
@@ -67,7 +117,10 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     }
   });
 
-  app.post<{ Body: { name: string; role: string; status?: 'idle' | 'busy' | 'offline' } }>('/agents', async (req, reply) => {
+  app.post<{ Body: { name: string; role: string; status?: AgentStatus } }>(
+    '/agents',
+    { schema: { body: createAgentBodySchema } },
+    async (req, reply) => {
     const { name, role, status } = req.body;
     if (!name || !role) {
       return fail(reply, 400, 'name and role are required', 'VALIDATION_ERROR');
@@ -82,7 +135,10 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     }
   });
 
-  app.post<{ Params: { id: string } }>('/agents/:id/pause', async (req, reply) => {
+  app.post<{ Params: { id: string } }>(
+    '/agents/:id/pause',
+    { schema: { params: idParamsSchema } },
+    async (req, reply) => {
     try {
       const agent = runtimeSource.pauseAgent(req.params.id);
       if (!agent) {
@@ -96,7 +152,10 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     }
   });
 
-  app.post<{ Params: { id: string } }>('/agents/:id/resume', async (req, reply) => {
+  app.post<{ Params: { id: string } }>(
+    '/agents/:id/resume',
+    { schema: { params: idParamsSchema } },
+    async (req, reply) => {
     try {
       const agent = runtimeSource.resumeAgent(req.params.id);
       if (!agent) {
@@ -127,7 +186,10 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
       status?: TaskStatus;
       priority: 'low' | 'medium' | 'high';
     };
-  }>('/tasks', async (req, reply) => {
+  }>(
+    '/tasks',
+    { schema: { body: createTaskBodySchema } },
+    async (req, reply) => {
     const { title, priority, description, assigneeAgentId, status } = req.body;
     if (!title || !priority) {
       return fail(reply, 400, 'title and priority are required', 'VALIDATION_ERROR');
@@ -142,7 +204,10 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     }
   });
 
-  app.patch<{ Params: { id: string }; Body: { status: TaskStatus } }>('/tasks/:id/status', async (req, reply) => {
+  app.patch<{ Params: { id: string }; Body: { status: TaskStatus } }>(
+    '/tasks/:id/status',
+    { schema: { params: idParamsSchema, body: updateTaskStatusBodySchema } },
+    async (req, reply) => {
     try {
       const task = runtimeSource.updateTaskStatus(req.params.id, req.body.status);
       if (!task) {
@@ -155,7 +220,10 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     }
   });
 
-  app.post<{ Params: { id: string } }>('/tasks/:id/retry', async (req, reply) => {
+  app.post<{ Params: { id: string } }>(
+    '/tasks/:id/retry',
+    { schema: { params: idParamsSchema } },
+    async (req, reply) => {
     try {
       const task = runtimeSource.retryTask(req.params.id);
       if (!task) {
@@ -169,7 +237,10 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     }
   });
 
-  app.get<{ Querystring: { limit?: number } }>('/events', async (req, reply) => {
+  app.get<{ Querystring: { limit?: number } }>(
+    '/events',
+    { schema: { querystring: eventsQuerySchema } },
+    async (req, reply) => {
     try {
       return ok(reply, runtimeSource.listEvents(req.query.limit));
     } catch (error) {

@@ -1,6 +1,16 @@
 import { EventEmitter } from 'node:events';
 import { v4 as uuidv4 } from 'uuid';
-import { Agent, AgentStatus, Event, EventType, Overview, Task, TaskStatus } from '../models/types';
+import {
+  AGENT_STATUSES,
+  TASK_STATUSES,
+  Agent,
+  AgentStatus,
+  Event,
+  EventType,
+  Overview,
+  Task,
+  TaskStatus
+} from '../models/types';
 import { RuntimeSnapshot } from '../runtime/runtimeSource';
 
 const nowIso = () => new Date().toISOString();
@@ -47,11 +57,8 @@ export class MockStore {
   ];
 
   getOverview(): Overview {
-    const agentsByStatus = this.countByStatus<AgentStatus>(this.agents.map((a) => a.status), ['idle', 'busy', 'offline']);
-    const tasksByStatus = this.countByStatus<TaskStatus>(
-      this.tasks.map((t) => t.status),
-      ['todo', 'in_progress', 'blocked', 'done']
-    );
+    const agentsByStatus = this.countByStatus<AgentStatus>(this.agents.map((a) => a.status), [...AGENT_STATUSES]);
+    const tasksByStatus = this.countByStatus<TaskStatus>(this.tasks.map((t) => t.status), [...TASK_STATUSES]);
 
     return {
       generatedAt: nowIso(),
@@ -175,14 +182,14 @@ export class MockStore {
     const roll = Math.random();
     if (roll < 0.5 && this.tasks.length > 0) {
       const randomTask = this.tasks[Math.floor(Math.random() * this.tasks.length)];
-      const statuses: TaskStatus[] = ['todo', 'in_progress', 'blocked', 'done'];
+      const statuses: TaskStatus[] = [...TASK_STATUSES];
       const status = statuses[Math.floor(Math.random() * statuses.length)];
       this.updateTaskStatus(randomTask.id, status);
       return this.events[this.events.length - 1];
     }
 
     const randomAgent = this.agents[Math.floor(Math.random() * this.agents.length)];
-    const statuses: AgentStatus[] = ['idle', 'busy', 'offline'];
+    const statuses: AgentStatus[] = [...AGENT_STATUSES];
     const nextStatus = statuses[Math.floor(Math.random() * statuses.length)];
     randomAgent.status = nextStatus;
     randomAgent.updatedAt = nowIso();

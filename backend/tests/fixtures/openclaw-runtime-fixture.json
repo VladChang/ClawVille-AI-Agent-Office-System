@@ -1,0 +1,50 @@
+{
+  "snapshot": {
+    "agents": [
+      {
+        "id": "oc-a-1",
+        "name": "Iris",
+        "role": "Coordinator",
+        "status": "busy",
+        "updatedAt": "2026-03-08T01:00:00.000Z"
+      },
+      {
+        "id": "bad-agent",
+        "name": "Missing role"
+      }
+    ],
+    "tasks": [
+      {
+        "id": "oc-t-1",
+        "title": "Ship runtime bridge",
+        "status": "in_progress",
+        "priority": "high",
+        "assigneeAgentId": "oc-a-1",
+        "createdAt": "2026-03-08T00:00:00.000Z",
+        "updatedAt": "2026-03-08T01:00:00.000Z"
+      },
+      {
+        "id": "oc-t-2",
+        "title": "Uncertain status task",
+        "status": "mystery",
+        "priority": "urgent",
+        "createdAt": "2026-03-08T00:30:00.000Z"
+      }
+    ],
+    "events": [
+      {
+        "id": "oc-e-1",
+        "type": "task_updated",
+        "message": "Runtime fixture snapshot loaded",
+        "timestamp": "2026-03-08T01:00:00.000Z",
+        "metadata": {
+          "source": "fixture"
+        }
+      },
+      {
+        "id": "bad-event",
+        "type": "system"
+      }
+    ]
+  }
+}
