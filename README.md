@@ -9,6 +9,7 @@ ClawVille is an **internal dashboard prototype** for observing and operating mul
 - Backend REST + WebSocket contracts are implemented and stable for local integration
 - Operator actions available: pause/resume agent, retry task, task status update
 - Runtime abstraction exists (`RuntimeSource`) with `mock` and `openclaw` bindings
+- Optional durable local persistence baseline for runtime snapshot + transition history (`RUNTIME_PERSISTENCE_ENABLED`)
 - Local dev, Docker compose run path, and baseline acceptance smoke are in place
 - Release process docs/checklists exist (prototype and production-candidate gates)
 

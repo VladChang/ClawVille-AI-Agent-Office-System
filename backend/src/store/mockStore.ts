@@ -12,6 +12,12 @@ import {
   TaskStatus
 } from '../models/types';
 import { RuntimeSnapshot } from '../runtime/runtimeSource';
+import {
+  AgentStatusRecord,
+  JsonFilePersistence,
+  PersistedRuntimeData,
+  TaskTransitionRecord
+} from './jsonPersistence';
 
 const nowIso = () => new Date().toISOString();
 
@@ -19,6 +25,9 @@ export type StoreSnapshot = RuntimeSnapshot;
 
 export class MockStore {
   private readonly emitter = new EventEmitter();
+
+  private taskTransitions: TaskTransitionRecord[] = [];
+  private agentStatusChanges: AgentStatusRecord[] = [];
 
   private agents: Agent[] = [
     { id: 'a-1', name: 'Nova', role: 'Planner', status: 'busy', updatedAt: nowIso() },
@@ -55,6 +64,17 @@ export class MockStore {
       timestamp: nowIso()
     }
   ];
+
+  constructor(private readonly persistence?: JsonFilePersistence) {
+    const persisted = this.persistence?.load();
+    if (!persisted) return;
+
+    this.agents = persisted.snapshot.agents;
+    this.tasks = persisted.snapshot.tasks;
+    this.events = persisted.snapshot.events;
+    this.taskTransitions = persisted.history.taskTransitions;
+    this.agentStatusChanges = persisted.history.agentStatusChanges;
+  }
 
   getOverview(): Overview {
     const agentsByStatus = this.countByStatus<AgentStatus>(this.agents.map((a) => a.status), [...AGENT_STATUSES]);
@@ -108,8 +128,10 @@ export class MockStore {
   pauseAgent(agentId: string): Agent | undefined {
     const agent = this.getAgent(agentId);
     if (!agent) return undefined;
+    const previous = agent.status;
     agent.status = 'offline';
     agent.updatedAt = nowIso();
+    this.recordAgentStatusChange(agent.id, previous, agent.status);
     const event = this.pushEvent('agent_paused', `Agent paused: ${agent.name}`, { agentId: agent.id });
     this.emitState(event);
     return agent;
@@ -118,8 +140,10 @@ export class MockStore {
   resumeAgent(agentId: string): Agent | undefined {
     const agent = this.getAgent(agentId);
     if (!agent) return undefined;
+    const previous = agent.status;
     agent.status = 'idle';
     agent.updatedAt = nowIso();
+    this.recordAgentStatusChange(agent.id, previous, agent.status);
     const event = this.pushEvent('agent_resumed', `Agent resumed: ${agent.name}`, { agentId: agent.id });
     this.emitState(event);
     return agent;
@@ -154,8 +178,10 @@ export class MockStore {
     const task = this.tasks.find((t) => t.id === taskId);
     if (!task) return undefined;
 
+    const previous = task.status;
     task.status = status;
     task.updatedAt = nowIso();
+    this.recordTaskTransition(task.id, previous, task.status);
     const event = this.pushEvent('task_updated', `Task updated: ${task.title} -> ${status}`, { taskId: task.id, status });
     this.emitState(event);
 
@@ -166,8 +192,10 @@ export class MockStore {
     const task = this.getTask(taskId);
     if (!task) return undefined;
 
+    const previous = task.status;
     task.status = 'in_progress';
     task.updatedAt = nowIso();
+    this.recordTaskTransition(task.id, previous, task.status);
     const event = this.pushEvent('task_retried', `Task retried: ${task.title}`, { taskId: task.id, status: task.status });
     this.emitState(event);
     return task;
@@ -191,8 +219,10 @@ export class MockStore {
     const randomAgent = this.agents[Math.floor(Math.random() * this.agents.length)];
     const statuses: AgentStatus[] = [...AGENT_STATUSES];
     const nextStatus = statuses[Math.floor(Math.random() * statuses.length)];
+    const previous = randomAgent.status;
     randomAgent.status = nextStatus;
     randomAgent.updatedAt = nowIso();
+    this.recordAgentStatusChange(randomAgent.id, previous, randomAgent.status);
 
     const event = this.pushEvent('agent_status_changed', `Agent status changed: ${randomAgent.name} -> ${nextStatus}`, {
       agentId: randomAgent.id,
@@ -219,7 +249,35 @@ export class MockStore {
     return () => this.emitter.off('state', listener);
   }
 
+  private recordTaskTransition(taskId: string, from: TaskStatus, to: TaskStatus): void {
+    this.taskTransitions.push({ taskId, from, to, at: nowIso() });
+  }
+
+  private recordAgentStatusChange(agentId: string, from: AgentStatus, to: AgentStatus): void {
+    this.agentStatusChanges.push({ agentId, from, to, at: nowIso() });
+  }
+
+  private toPersistedData(): PersistedRuntimeData {
+    return {
+      version: 1,
+      snapshot: {
+        agents: this.agents,
+        tasks: this.tasks,
+        events: this.events
+      },
+      history: {
+        taskTransitions: this.taskTransitions,
+        agentStatusChanges: this.agentStatusChanges
+      }
+    };
+  }
+
+  private persist(): void {
+    this.persistence?.save(this.toPersistedData());
+  }
+
   private emitState(event?: Event): void {
+    this.persist();
     this.emitter.emit('state', { snapshot: this.getSnapshot(), event });
   }
 
@@ -234,4 +292,12 @@ export class MockStore {
   }
 }
 
-export const store = new MockStore();
+function createPersistenceFromEnv(): JsonFilePersistence | undefined {
+  const enabled = process.env.RUNTIME_PERSISTENCE_ENABLED === 'true' || process.env.RUNTIME_PERSISTENCE_ENABLED === '1';
+  if (!enabled) return undefined;
+
+  const filePath = process.env.RUNTIME_PERSISTENCE_FILE?.trim() || '.data/runtime-state.json';
+  return new JsonFilePersistence(filePath);
+}
+
+export const store = new MockStore(createPersistenceFromEnv());
