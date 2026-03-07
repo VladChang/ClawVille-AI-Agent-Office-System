@@ -1,46 +1,43 @@
 # Project Roadmap (Execution View)
 
-Sprint-oriented view derived from current implementation.
+Sprint-style execution view, synchronized with current implementation.
 
-## Done (MVP foundation)
+## Completed
 
-- Dashboard UI with Overview / Agents / Tasks / Events
-- Office View route with room layout and selection sync
-- Backend REST API + WebSocket stream
-- In-memory store with agent/task/event mutations
-- Control actions wired end-to-end (pause/resume/retry)
-- Round 3 baseline shipped: Dockerfiles + compose, readiness/metrics endpoint, request-id log correlation, security baseline docs
+### Foundation + Product Surface
+- Dashboard pages + shared shell
+- Office and Analytics experiences
+- Frontend store and realtime synchronization
 
-## In Progress (stabilization)
+### Runtime + Contracts
+- REST/WS contract stabilization
+- RuntimeSource abstraction in backend
+- Frontend runtime contract parsing/normalization
+- Runtime mode controls (mock/local/real frontend, mock/openclaw backend)
 
-- Documentation pass for API/event contracts and runtime modes
-- Contract cleanup to support future data-source swap
-- Backlog refinement for real-runtime integration
-- Ops baseline follow-ups (metrics expansion + alerting thresholds)
+### Reliability + Delivery
+- CI validation for backend/frontend + acceptance smoke
+- Test baseline across API/runtime/analytics/schema
+- WS reconnect/degraded UX behavior
+- Dockerized run path + readiness/metrics endpoints
+- Release runbook + tagged-release script + rollback guidance
 
-## Backlog (delivery order)
+## Current Active Track
 
-### Phase A — Real Integration
+- Real OpenClaw runtime hookup (replace stub client while preserving contracts)
 
-- Introduce runtime adapter abstraction in backend
-- Replace mock store source with OpenClaw runtime feeds/controls
-- Preserve existing REST/WS response contracts
+## Next Milestones
 
-### Phase B — Persistence & Security
+### Milestone 1 — Real Runtime Hookup
+- Implement OpenClaw transport in `OpenClawRuntimeSource`
+- Support snapshot/list/control/subscribe against real runtime
+- Add integration fixtures and regression tests
 
-- Add durable state/event persistence
-- Add authentication and role-based controls
-- Add audit logs for operator actions
+### Milestone 2 — Security + Persistence
+- Add persistence layer for history
+- Add auth/RBAC and audit logs
 
-### Phase C — Analytics & Operations
-
-- Upgrade analytics page with real derived metrics
-- Add dependency graph and event playback
-- Add production observability and alert hooks
-
-## Improvements / Quality Gates
-
-- API contract tests (REST + WS envelope)
-- E2E smoke tests against local integration mode
-- Performance targets for larger agent/event volumes
-- Failure-mode tests (backend restart, WS reconnect, partial outage)
+### Milestone 3 — Production Observability
+- Expand metrics and alerts
+- Add scale/perf/failure-mode validation
+- Harden deployment automation

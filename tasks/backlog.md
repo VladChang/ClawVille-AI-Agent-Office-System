@@ -1,51 +1,48 @@
-# Task Backlog (Current MVP)
+# Task Backlog (Current State)
 
-Prioritized backlog aligned with what is already implemented.
+Prioritized task list aligned to the current repository.
 
 ## Done
 
-- [x] Frontend scaffold (Next.js + Tailwind + Zustand)
-- [x] Core data models for agent/task/event
-- [x] Dashboard pages and shared layout
-- [x] Backend REST + WebSocket server scaffold
-- [x] API envelope standardization
-- [x] Agent control endpoints (pause/resume)
-- [x] Task retry endpoint
-- [x] Frontend realtime snapshot sync
-- [x] Office view with room-based visualization
+- [x] Frontend scaffold + shared layout + state store
+- [x] Core dashboard pages and Office/Analytics views
+- [x] Backend REST + WebSocket MVP contracts
+- [x] Pause/resume/retry control flows
+- [x] Runtime contract/schema normalization layer (frontend)
+- [x] RuntimeSource abstraction and env-based runtime binding (backend)
+- [x] CI expansion (backend + frontend + acceptance smoke)
+- [x] Baseline tests (backend API/runtime contract + frontend schema/analytics/runtime)
+- [x] Degraded/reconnect UX consistency
+- [x] Docker + readiness/metrics + ops baseline docs
+- [x] Release runbook and rollback-oriented release checklist
 
 ## In Progress
 
-- [ ] Publish concise API reference from actual code
-- [ ] Document websocket/event payload schema
-- [ ] Clarify runtime modes and integration boundaries in README
-- [ ] Reconcile docs roadmap/tasks roadmap with shipped features
+- [ ] Implement real OpenClaw transport/client in `OpenClawRuntimeSource`
+- [ ] Validate live runtime mapping with integration fixtures
 
 ## Backlog
 
-### P0 / Near-term
+### P0 (Next)
 
-1. Add request validation schemas for create/update endpoints
-2. Add API contract tests for envelope + status codes
-3. Define and implement real runtime adapter interface (OpenClaw source)
-4. Add "connection state" UX for websocket (connected/reconnecting/degraded)
+1. Replace Round 2 stub OpenClaw client with real data-plane implementation
+2. Add real-runtime integration tests (snapshot/list/control/event subscription)
+3. Add request validation schemas for mutation endpoints
 
 ### P1
 
-5. Persist state/events (SQLite or Postgres)
-6. Add auth and role-based control permissions
-7. Add richer event filtering/search and pagination
-8. Make analytics page compute real metrics from store
+4. Add durable persistence for event/state history
+5. Add auth + RBAC for control operations
+6. Add operator audit log trail
 
 ### P2
 
-9. Add dependency graph view
-10. Add incident/event playback timeline
-11. Add export/reporting endpoints
+7. Expand metrics and dashboards (reconnect/error budget/latency)
+8. Add higher-volume performance + outage/failure-mode testing
+9. Add deployment automation for release/rollback workflows
 
 ## Improvements
 
-- Improve event severity mapping (server-provided level instead of client heuristic)
-- Add typed SDK client for frontend API calls
-- Add E2E coverage for pause/resume/retry + WS update loop
-- Add load/perf baseline for 50+ agents and high event throughput
+- Move event severity derivation to backend-provided canonical levels
+- Add typed SDK client for frontend API and runtime contracts
+- Add stricter contract checks for WS payload drift

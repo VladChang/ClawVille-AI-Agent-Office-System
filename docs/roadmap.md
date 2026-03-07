@@ -1,48 +1,53 @@
 # Development Roadmap (Implementation-Aligned)
 
-This roadmap reflects the **current MVP codebase**, not just aspirational plans.
+This roadmap reflects the current shipped state in `main`.
 
 ## Done
 
-- Next.js dashboard skeleton with shared layout and navigation
-- Pages: Overview, Agents, Tasks, Events, Office, Analytics placeholder
-- Zustand-based shared client state
-- Backend Fastify API with stable envelope (`success/data/error`)
-- Core REST resources: overview, agents, tasks, events
-- Control actions: pause/resume agent, retry task, update task status
-- WebSocket realtime channel with initial snapshot + state updates
-- Office View with room grouping, occupancy chips, and collaboration links
-- Local dev setup and build pipeline for frontend/backend
-- Round 2 runtime integration scaffold:
-  - Backend env-based runtime source selection (`RUNTIME_SOURCE=mock|openclaw`)
-  - Adapter-ready `OpenClawRuntimeSource` with injectable client skeleton (snapshot/list/get/control/subscribe)
-  - Strict degraded behavior in `openclaw` mode when client is not configured (no silent fallback unless `ALLOW_RUNTIME_FALLBACK=true`)
-  - Startup warnings for runtime config gaps and fallback posture
-  - Frontend strict `real` mode error surfacing + actionable runtime-not-configured banner + tests
-- Round 3 deployment/ops baseline:
-  - Dockerized backend/frontend path with `docker-compose.yml`
-  - Readiness endpoint (`/api/ready`) + health endpoint guidance
-  - Lightweight metrics endpoint (`/api/metrics`) with request counters/duration sums
-  - Request ID propagation (`x-request-id`) and structured runtime logs
-  - Security baseline docs for env posture, CORS hardening, and secret handling
+- Dashboard foundation: Overview / Agents / Tasks / Events / Office / Analytics pages
+- Backend REST + WebSocket contracts (`success/data/error`, snapshot/state_changed)
+- Core operator actions: pause/resume agent, retry task, task status update
+- Shared frontend schema/runtime contract guards and mapping transformers
+- CI baseline: backend check/build + frontend test/build + acceptance smoke
+- Resilience UX: loading/empty/degraded/disconnected consistency + WS reconnect backoff
+- Runtime integration hardening:
+  - RuntimeSource abstraction in backend
+  - `RUNTIME_SOURCE=mock|openclaw` binding
+  - OpenClaw adapter Round 2 skeleton + strict degraded signaling
+- Ops baseline (Round 3):
+  - Dockerfiles + `docker-compose.yml`
+  - `/api/health`, `/api/ready`, `/api/metrics`
+  - request-id correlation + structured logs
+- Release hardening (Round 4):
+  - readiness/metrics-aware acceptance smoke
+  - tagged release script + runbook
+  - rollback checklist/flow
 
 ## In Progress
 
-- Documentation hardening (API reference + event schema + MVP scope clarity)
-- Tightening adapter contract tests before real runtime integration
-- Round 3 follow-up: broaden metrics set and add alert thresholds/dashboards
+- Real OpenClaw transport/client implementation behind `OpenClawRuntimeSource`
+- Production posture completion:
+  - auth/RBAC
+  - persistence
+  - audit trail
+  - alerting/SLO thresholds
 
-## Backlog (Next)
+## Backlog (Next Order)
 
-- OpenClaw runtime adapter Round 2+ (replace Round 1 proxy internals with real OpenClaw read/write operations while preserving `RuntimeSource` contract)
-- Persistent storage for agents/tasks/events history
-- Authentication and role-based controls
-- Better error taxonomy + validation schemas per endpoint
-- Robust reconnect/backfill behavior for websocket clients
+### Phase A — Real Runtime Data Plane
 
-## Improvements / Productionization
+- Implement actual OpenClaw client transport and event subscription
+- Map live runtime entities/events to existing RuntimeSource contract
+- Add integration tests for non-stub openclaw mode
 
-- Observability: structured logs, metrics, tracing
-- Reliability: idempotent commands, retries, circuit-breaking
-- Security: authN/authZ, audit log, rate limiting, CORS hardening
-- UX polish: richer analytics, timeline playback, performance tuning for larger agent counts
+### Phase B — Persistence + Security
+
+- Persist agents/tasks/events history (SQLite/Postgres)
+- Add authentication + role-based controls
+- Add operator audit logging and policy guards
+
+### Phase C — Operations + Scale
+
+- Expand metrics (error budgets, WS reconnect counters, queue latency)
+- Add alert thresholds/dashboards
+- Add performance and failure-mode test suites for larger workloads

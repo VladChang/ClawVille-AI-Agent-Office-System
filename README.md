@@ -45,9 +45,8 @@ Release posture is explicitly split between:
 
 ### 🚧 In Progress
 
-- API and event schema docs formalization (this batch)
-- Runtime mode framing (mock vs local integration vs real runtime)
-- Roadmap/backlog alignment with actual shipped MVP behavior
+- True OpenClaw runtime transport/client implementation behind the Round 2 adapter skeleton
+- Production hardening follow-ups (auth/RBAC, auditability, persistence, SLO/alerting)
 
 ### 🗺 Planned
 
@@ -89,21 +88,25 @@ ClawVille currently exposes runtime mode controls on both frontend and backend.
 ┌──────────────────────────────┐
 │          Frontend            │
 │ Next.js app + Zustand store  │
-│ pages: overview/agents/...   │
+│ runtime modes: mock/local/real│
 └──────────────┬───────────────┘
                │ REST (poll/load)
                │ WS (realtime push)
 ┌──────────────▼───────────────┐
 │           Backend            │
 │ Fastify API + /ws endpoint   │
-│ response envelope + controls │
+│ envelope + readiness/metrics │
 └──────────────┬───────────────┘
-               │ in-memory state/events
+               │ RuntimeSource contract
 ┌──────────────▼───────────────┐
-│         Mock Store           │
-│ agents/tasks/events/overview │
-│ + random state mutation      │
-└──────────────────────────────┘
+│     RuntimeSource Binding    │
+│ mode: mock | openclaw        │
+└───────┬─────────────────┬────┘
+        │                 │
+┌───────▼────────┐  ┌─────▼────────────────┐
+│ MockRuntime    │  │ OpenClawRuntime      │
+│ Source         │  │ Source (Round2 skel) │
+└────────────────┘  └──────────────────────┘
 ```
 
 ---
