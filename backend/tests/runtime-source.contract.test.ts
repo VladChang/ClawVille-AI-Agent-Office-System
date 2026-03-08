@@ -6,20 +6,20 @@ import { MockRuntimeSource } from '../src/runtime/mockRuntimeSource';
 test('MockRuntimeSource honors runtime source contract for snapshot/list/control + state change', async () => {
   const source = new MockRuntimeSource(new MockStore());
 
-  const snapshotBefore = source.getSnapshot();
+  const snapshotBefore = await source.getSnapshot();
   assert.equal(Array.isArray(snapshotBefore.agents), true);
   assert.equal(Array.isArray(snapshotBefore.tasks), true);
   assert.equal(Array.isArray(snapshotBefore.events), true);
   assert.equal(snapshotBefore.events.every((event) => typeof event.level === 'string'), true);
 
-  const agent = source.addAgent({ name: 'Contract Agent', role: 'QA' });
-  const paused = source.pauseAgent(agent.id);
+  const agent = await source.addAgent({ name: 'Contract Agent', role: 'QA' });
+  const paused = await source.pauseAgent(agent.id);
   assert.equal(paused?.status, 'offline');
-  const resumed = source.resumeAgent(agent.id);
+  const resumed = await source.resumeAgent(agent.id);
   assert.equal(resumed?.status, 'idle');
 
-  const task = source.addTask({ title: 'Contract Task', priority: 'medium', status: 'blocked' });
-  const retried = source.retryTask(task.id);
+  const task = await source.addTask({ title: 'Contract Task', priority: 'medium', status: 'blocked' });
+  const retried = await source.retryTask(task.id);
   assert.equal(retried?.status, 'in_progress');
 
   let seenStateChanged = false;
@@ -30,7 +30,7 @@ test('MockRuntimeSource honors runtime source contract for snapshot/list/control
     assert.equal(event?.level, 'error');
   });
 
-  source.updateTaskStatus(task.id, 'blocked');
+  await source.updateTaskStatus(task.id, 'blocked');
   unsubscribe();
 
   assert.equal(seenStateChanged, true);

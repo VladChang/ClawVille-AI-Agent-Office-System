@@ -8,9 +8,10 @@ ClawVille is an **internal dashboard prototype** for observing and operating mul
 - Core UI routes are implemented: `/`, `/agents`, `/tasks`, `/events`, `/office`, `/analytics`
 - Backend REST + WebSocket contracts are implemented and stable for local integration
 - Operator actions available: pause/resume agent, retry task, task status update
-- Runtime abstraction boundary exists (`RuntimeSource`) with `mock` and `openclaw` adapter scaffolding
+- Runtime abstraction boundary exists (`RuntimeSource`) with `mock` and `openclaw` bindings
 - Optional local persistence baseline exists for runtime snapshot + transition history (`RUNTIME_PERSISTENCE_ENABLED`)
 - Optional internal-use auth/RBAC header gate + operator audit trail endpoint baseline exist (`AUTH_MODE=header`, `/api/audit`)
+- OpenClaw HTTP/JSON transport baseline exists for snapshot/list/control operations, plus polling-based subscription when a runtime endpoint is configured
 - Local dev, Docker compose run path, and baseline acceptance smoke are in place
 
 ### Known Issues
@@ -44,12 +45,12 @@ npm run stop
 ```
 
 ### In Progress
-- Real OpenClaw transport/data-plane implementation behind `OpenClawRuntimeSource`
+- OpenClaw transport hardening against real upstream conventions (path tuning, auth header variants, failure handling, push subscription)
 - Production hardening: auth/RBAC, persistence, audit trail, stronger alerting/SLO posture
 
 ### Next
-- Wire live runtime events/data into current RuntimeSource contract
-- Add integration tests for non-stub `openclaw` mode
+- Validate the HTTP transport against real upstream OpenClaw deployments
+- Add stronger outage/reconnect tests for non-fixture `openclaw` mode
 - Complete production gate items and promote from prototype/internal use to production-candidate
 
 ## Scope Classification (Explicit)
@@ -70,17 +71,24 @@ Legacy compat: `NEXT_PUBLIC_USE_MOCK_API=true` still supported.
 
 ### Backend (`RUNTIME_SOURCE`)
 - `mock`: in-memory runtime source
-- `openclaw`: adapter-ready integration boundary only; strict degraded signaling when runtime config is missing/unready, but full live transport wiring is still incomplete
+- `openclaw`: HTTP/JSON runtime transport baseline with strict degraded signaling when runtime config is missing/unready; fixture mode is still supported for local integration
 
 Key env for openclaw mode:
 - `OPENCLAW_RUNTIME_ENDPOINT`
 - `OPENCLAW_RUNTIME_API_KEY`
+- `OPENCLAW_RUNTIME_POLL_MS`
+- `OPENCLAW_RUNTIME_AUTH_HEADER`
+- `OPENCLAW_RUNTIME_AUTH_SCHEME`
+- `OPENCLAW_RUNTIME_SNAPSHOT_PATH`
+- `OPENCLAW_RUNTIME_AGENTS_PATH`
+- `OPENCLAW_RUNTIME_TASKS_PATH`
+- `OPENCLAW_RUNTIME_EVENTS_PATH`
 - `ALLOW_RUNTIME_FALLBACK=false` (recommended/expected for strict posture)
 
 Current `openclaw` maturity:
 - Runtime boundary, env selection, degraded readiness, and fixture-backed tests exist
-- Full live snapshot/list/control/subscription transport is still pending
-- Treat current `openclaw` mode as adapter scaffolding, not full production runtime integration
+- HTTP transport covers snapshot/list/control against JSON endpoints, with polling-based snapshot subscription for realtime updates
+- Production hardening is still pending: upstream-specific endpoint conventions, richer auth negotiation, and push/event-stream transport
 
 ## Architecture Summary
 
@@ -98,7 +106,7 @@ Backend (Fastify API + /ws)
         ▼
 RuntimeSource
   ├─ MockRuntimeSource (in-memory)
-  └─ OpenClawRuntimeSource (adapter-ready boundary; live transport pending)
+  └─ OpenClawRuntimeSource (fixture + HTTP transport baseline; polling subscription)
 ```
 
 ## Shared Contracts
@@ -143,8 +151,8 @@ Maturity labels used below:
 |---|---|---|
 | UI routes & operator flows | Implemented and usable | **Stable** |
 | REST/WS contract | Implemented; local integration verified | **Stable** |
-| Runtime adapter contract | Abstraction exists; `openclaw` currently provides adapter scaffolding plus degraded-mode signaling, not a full live transport | **Prototype baseline** |
-| Real OpenClaw transport wiring | Not complete | **Missing** |
+| Runtime adapter contract | Abstraction exists; `openclaw` now supports fixture transport and HTTP/JSON transport behind the same boundary | **Prototype baseline** |
+| OpenClaw transport wiring | HTTP snapshot/list/control baseline exists, but upstream-specific protocol hardening and push subscription are still incomplete | **Prototype baseline** |
 | Persistence (local durable baseline) | File-backed runtime state exists for local/internal durability; database-grade durability and operational safeguards are still absent | **Internal-only** |
 | Auth/RBAC | Header-based operator gate exists for internal control flows; real identity/session/authz integration is still incomplete | **Internal-only** |
 | Audit trail/compliance logging | Operator audit endpoint + file-backed baseline exist; retention/compliance/export pipeline still needs hardening | **Internal-only** |

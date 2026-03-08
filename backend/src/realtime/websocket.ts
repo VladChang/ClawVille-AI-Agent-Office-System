@@ -66,15 +66,20 @@ export async function registerRealtime(app: FastifyInstance): Promise<void> {
       }
     };
 
-    try {
-      send(createRealtimeSnapshotPayload(runtimeSource.getSnapshot()));
-    } catch (error) {
-      if (error instanceof RuntimeSourceUnavailableError) {
-        send(createRealtimeSnapshotPayload(emptySnapshot(error.message)));
-      } else {
-        throw error;
+    void (async () => {
+      try {
+        send(createRealtimeSnapshotPayload(await runtimeSource.getSnapshot()));
+      } catch (error) {
+        if (error instanceof RuntimeSourceUnavailableError) {
+          send(createRealtimeSnapshotPayload(emptySnapshot(error.message)));
+          return;
+        }
+
+        const message = error instanceof Error ? error.message : 'Unknown realtime initialization error.';
+        app.log.error({ err: error }, 'Failed to initialize realtime websocket snapshot');
+        send(createRealtimeSnapshotPayload(emptySnapshot(message)));
       }
-    }
+    })();
 
     const unsubscribe = runtimeSource.onStateChange(({ snapshot, event }) => {
       send(createRealtimeStateChangedPayload(snapshot, event));

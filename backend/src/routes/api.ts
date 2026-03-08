@@ -191,7 +191,7 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
 
   app.get('/overview', async (_, reply) => {
     try {
-      return ok(reply, runtimeSource.getOverview());
+      return ok(reply, await runtimeSource.getOverview());
     } catch (error) {
       if (isRuntimeUnavailable(error)) return runtimeFailure(reply, error);
       throw error;
@@ -200,7 +200,7 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
 
   app.get('/agents', async (_, reply) => {
     try {
-      return ok(reply, runtimeSource.listAgents());
+      return ok(reply, await runtimeSource.listAgents());
     } catch (error) {
       if (isRuntimeUnavailable(error)) return runtimeFailure(reply, error);
       throw error;
@@ -224,7 +224,7 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     }
 
     try {
-      const agent = runtimeSource.addAgent({ name, role, status });
+      const agent = await runtimeSource.addAgent({ name, role, status });
       auditTrail.record({ actorId: actor.id, actorRole: actor.role, action: 'agent.create', targetType: 'agent', targetId: agent.id, result: 'success' });
       return ok(reply, agent, 201);
     } catch (error) {
@@ -247,7 +247,7 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     async (req, reply) => {
     const actor = getActor(req);
     try {
-      const agent = runtimeSource.pauseAgent(req.params.id);
+      const agent = await runtimeSource.pauseAgent(req.params.id);
       if (!agent) {
         auditTrail.record({ actorId: actor.id, actorRole: actor.role, action: 'agent.pause', targetType: 'agent', targetId: req.params.id, result: 'failure', reason: 'NOT_FOUND' });
         return fail(reply, 404, 'Agent not found', 'NOT_FOUND');
@@ -275,7 +275,7 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     async (req, reply) => {
     const actor = getActor(req);
     try {
-      const agent = runtimeSource.resumeAgent(req.params.id);
+      const agent = await runtimeSource.resumeAgent(req.params.id);
       if (!agent) {
         auditTrail.record({ actorId: actor.id, actorRole: actor.role, action: 'agent.resume', targetType: 'agent', targetId: req.params.id, result: 'failure', reason: 'NOT_FOUND' });
         return fail(reply, 404, 'Agent not found', 'NOT_FOUND');
@@ -294,7 +294,7 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
 
   app.get('/tasks', async (_, reply) => {
     try {
-      return ok(reply, runtimeSource.listTasks());
+      return ok(reply, await runtimeSource.listTasks());
     } catch (error) {
       if (isRuntimeUnavailable(error)) return runtimeFailure(reply, error);
       throw error;
@@ -326,7 +326,7 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     }
 
     try {
-      const task = runtimeSource.addTask({ title, priority, description, assigneeAgentId, status });
+      const task = await runtimeSource.addTask({ title, priority, description, assigneeAgentId, status });
       auditTrail.record({ actorId: actor.id, actorRole: actor.role, action: 'task.create', targetType: 'task', targetId: task.id, result: 'success' });
       return ok(reply, task, 201);
     } catch (error) {
@@ -349,7 +349,7 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     async (req, reply) => {
     const actor = getActor(req);
     try {
-      const task = runtimeSource.updateTaskStatus(req.params.id, req.body.status);
+      const task = await runtimeSource.updateTaskStatus(req.params.id, req.body.status);
       if (!task) {
         auditTrail.record({ actorId: actor.id, actorRole: actor.role, action: 'task.update_status', targetType: 'task', targetId: req.params.id, result: 'failure', reason: 'NOT_FOUND' });
         return fail(reply, 404, 'Task not found', 'NOT_FOUND');
@@ -376,7 +376,7 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     async (req, reply) => {
     const actor = getActor(req);
     try {
-      const task = runtimeSource.retryTask(req.params.id);
+      const task = await runtimeSource.retryTask(req.params.id);
       if (!task) {
         auditTrail.record({ actorId: actor.id, actorRole: actor.role, action: 'task.retry', targetType: 'task', targetId: req.params.id, result: 'failure', reason: 'NOT_FOUND' });
         return fail(reply, 404, 'Task not found', 'NOT_FOUND');
@@ -398,7 +398,7 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     { schema: { querystring: eventsQuerySchema } },
     async (req, reply) => {
     try {
-      return ok(reply, runtimeSource.listEvents(req.query.limit));
+      return ok(reply, await runtimeSource.listEvents(req.query.limit));
     } catch (error) {
       if (isRuntimeUnavailable(error)) return runtimeFailure(reply, error);
       throw error;

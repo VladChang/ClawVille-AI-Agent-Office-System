@@ -20,8 +20,9 @@ TypeScript + Fastify backend for ClawVille dashboard integration.
 - Readiness endpoint (`GET /api/ready`) for strict runtime configuration checks
 - Request validation schemas with consistent `VALIDATION_ERROR` envelopes for mutation/query failures
 - Env-based runtime source selection via `RUNTIME_SOURCE` (`mock` | `openclaw`)
-  - `openclaw` is an adapter-ready runtime boundary with injectable runtime client interfaces
-  - live upstream snapshot/list/control/subscription transport is still incomplete
+  - `openclaw` supports fixture transport and HTTP/JSON runtime transport behind the same runtime boundary
+  - snapshot/list/control are backed by real async transport calls when `OPENCLAW_RUNTIME_ENDPOINT` + `OPENCLAW_RUNTIME_API_KEY` are configured
+  - realtime subscription uses polling-based snapshot change detection (`OPENCLAW_RUNTIME_POLL_MS`) for the HTTP transport baseline
   - strict degraded behavior by default when runtime client is not configured (`RUNTIME_NOT_CONFIGURED`)
   - optional non-production fallback: `ALLOW_RUNTIME_FALLBACK=true`
 

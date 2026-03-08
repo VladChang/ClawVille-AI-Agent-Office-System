@@ -4,9 +4,9 @@ import { MockRuntimeSource } from '../src/runtime/mockRuntimeSource';
 import { MockStore } from '../src/store/mockStore';
 import { createRealtimeSnapshotPayload, createRealtimeStateChangedPayload } from '../src/realtime/realtimeContract';
 
-test('realtime websocket payload builders keep the expected envelope shape', () => {
+test('realtime websocket payload builders keep the expected envelope shape', async () => {
   const runtimeSource = new MockRuntimeSource(new MockStore());
-  const snapshot = runtimeSource.getSnapshot();
+  const snapshot = await runtimeSource.getSnapshot();
   const event = snapshot.events[0];
 
   const initialPayload = createRealtimeSnapshotPayload(snapshot);

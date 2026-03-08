@@ -9,19 +9,21 @@ export interface RuntimeSnapshot {
 
 export interface RuntimeSource {
   // Snapshot / list operations
-  getOverview(): Overview;
-  getSnapshot(): RuntimeSnapshot;
-  listAgents(): Agent[];
-  listTasks(): Task[];
-  listEvents(limit?: number): Event[];
+  getOverview(): Promise<Overview>;
+  getSnapshot(): Promise<RuntimeSnapshot>;
+  listAgents(): Promise<Agent[]>;
+  listTasks(): Promise<Task[]>;
+  listEvents(limit?: number): Promise<Event[]>;
 
   // Control / mutation operations
-  addAgent(payload: Pick<Agent, 'name' | 'role'> & Partial<Pick<Agent, 'status'>>): Agent;
-  pauseAgent(agentId: string): Agent | undefined;
-  resumeAgent(agentId: string): Agent | undefined;
-  addTask(payload: Pick<Task, 'title' | 'priority'> & Partial<Omit<Task, 'id' | 'title' | 'priority' | 'createdAt' | 'updatedAt'>>): Task;
-  updateTaskStatus(taskId: string, status: TaskStatus): Task | undefined;
-  retryTask(taskId: string): Task | undefined;
+  addAgent(payload: Pick<Agent, 'name' | 'role'> & Partial<Pick<Agent, 'status'>>): Promise<Agent>;
+  pauseAgent(agentId: string): Promise<Agent | undefined>;
+  resumeAgent(agentId: string): Promise<Agent | undefined>;
+  addTask(
+    payload: Pick<Task, 'title' | 'priority'> & Partial<Omit<Task, 'id' | 'title' | 'priority' | 'createdAt' | 'updatedAt'>>
+  ): Promise<Task>;
+  updateTaskStatus(taskId: string, status: TaskStatus): Promise<Task | undefined>;
+  retryTask(taskId: string): Promise<Task | undefined>;
 
   // Realtime hooks
   onStateChange(listener: (payload: { snapshot: RuntimeSnapshot; event?: Event }) => void): () => void;

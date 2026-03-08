@@ -24,29 +24,29 @@ test('openclaw transport fixture maps payload into dashboard schema and filters 
     allowFallback: false
   });
 
-  const snapshot = source.getSnapshot();
+  return source.getSnapshot().then((snapshot) => {
+    assert.equal(snapshot.agents.length, 1);
+    assert.equal(snapshot.agents[0]?.id, 'oc-a-1');
+    assert.equal(snapshot.tasks.length, 2);
+    assert.equal(snapshot.tasks[1]?.status, 'todo');
+    assert.equal(snapshot.tasks[1]?.priority, 'medium');
+    assert.equal(snapshot.events.length, 1);
+    assert.equal(snapshot.events[0]?.id, 'oc-e-1');
+    assert.equal(snapshot.events[0]?.level, 'info');
 
-  assert.equal(snapshot.agents.length, 1);
-  assert.equal(snapshot.agents[0]?.id, 'oc-a-1');
-  assert.equal(snapshot.tasks.length, 2);
-  assert.equal(snapshot.tasks[1]?.status, 'todo');
-  assert.equal(snapshot.tasks[1]?.priority, 'medium');
-  assert.equal(snapshot.events.length, 1);
-  assert.equal(snapshot.events[0]?.id, 'oc-e-1');
-  assert.equal(snapshot.events[0]?.level, 'info');
-
-  assert.equal(snapshot.overview.counts.agents, 1);
-  assert.equal(snapshot.overview.counts.tasks, 2);
-  assert.equal(snapshot.overview.counts.events, 1);
+    assert.equal(snapshot.overview.counts.agents, 1);
+    assert.equal(snapshot.overview.counts.tasks, 2);
+    assert.equal(snapshot.overview.counts.events, 1);
+  });
 });
 
-test('openclaw runtime remains strict when unavailable and fallback is disabled', () => {
+test('openclaw runtime remains strict when unavailable and fallback is disabled', async () => {
   const source = new OpenClawRuntimeSource({
     fallback: new MockRuntimeSource(new MockStore()),
     allowFallback: false
   });
 
-  assert.throws(
+  await assert.rejects(
     () => source.getSnapshot(),
     (error: unknown) => {
       assert.equal(error instanceof RuntimeSourceUnavailableError, true);
@@ -80,13 +80,13 @@ test('openclaw state-change subscription stays schema-consistent with snapshot/l
     };
   });
 
-  source.pauseAgent('oc-a-1');
+  await source.pauseAgent('oc-a-1');
 
   for (let i = 0; i < 10 && !stateChangedPayload; i += 1) {
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
 
-  const apiAfterShape = source.listAgents().map((agent) => ({ id: agent.id, status: agent.status }));
+  const apiAfterShape = (await source.listAgents()).map((agent) => ({ id: agent.id, status: agent.status }));
   const changedAgent = stateChangedPayload?.snapshot.agents.find((agent) => agent.id === 'oc-a-1');
   const listedAgent = apiAfterShape.find((agent) => agent.id === 'oc-a-1');
 

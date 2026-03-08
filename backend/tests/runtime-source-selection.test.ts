@@ -24,14 +24,14 @@ test('createRuntimeSourceForMode binds expected implementation', () => {
   assert.equal(openclaw instanceof OpenClawRuntimeSource, true);
 });
 
-test('openclaw runtime throws explicit not-configured error when fallback disabled', () => {
+test('openclaw runtime throws explicit not-configured error when fallback disabled', async () => {
   const source = new OpenClawRuntimeSource({
     client: new OpenClawStubRuntimeClient('client-unavailable'),
     fallback: new MockRuntimeSource(new MockStore()),
     allowFallback: false
   });
 
-  assert.throws(
+  await assert.rejects(
     () => source.listAgents(),
     (error: unknown) => {
       assert.equal(error instanceof RuntimeSourceUnavailableError, true);
@@ -49,9 +49,14 @@ test('openclaw runtime may fallback to mock when ALLOW_RUNTIME_FALLBACK behavior
     allowFallback: true
   });
 
-  const before = source.listAgents().length;
-  source.addAgent({ name: 'Fallback Agent', role: 'Ops' });
-  const after = source.listAgents().length;
+  const beforePromise = source.listAgents();
+  const addPromise = source.addAgent({ name: 'Fallback Agent', role: 'Ops' });
+  const afterPromise = Promise.all([beforePromise, addPromise]).then(async ([before]) => {
+    const after = await source.listAgents();
+    return { before, after };
+  });
 
-  assert.equal(after, before + 1);
+  return afterPromise.then(({ before, after }) => {
+    assert.equal(after.length, before.length + 1);
+  });
 });

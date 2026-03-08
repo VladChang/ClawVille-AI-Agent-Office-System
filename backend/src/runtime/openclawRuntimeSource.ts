@@ -6,18 +6,19 @@ export type OpenClawControlAgentAction = 'pause' | 'resume';
 export type OpenClawControlTaskAction = 'retry' | 'update_status';
 
 export interface OpenClawRuntimeClient {
-  fetchSnapshot(): RuntimeSnapshotResult;
-  listAgents(): RuntimeResult<Agent[]>;
-  getAgent(agentId: string): RuntimeResult<Agent | null>;
-  controlAgent(action: OpenClawControlAgentAction, agentId: string): RuntimeResult<Agent | null>;
-  addAgent(payload: Pick<Agent, 'name' | 'role'> & Partial<Pick<Agent, 'status'>>): RuntimeResult<Agent>;
+  readonly configured: boolean;
+  fetchSnapshot(): Promise<RuntimeSnapshotResult>;
+  listAgents(): Promise<RuntimeResult<Agent[]>>;
+  getAgent(agentId: string): Promise<RuntimeResult<Agent | null>>;
+  controlAgent(action: OpenClawControlAgentAction, agentId: string): Promise<RuntimeResult<Agent | null>>;
+  addAgent(payload: Pick<Agent, 'name' | 'role'> & Partial<Pick<Agent, 'status'>>): Promise<RuntimeResult<Agent>>;
 
-  listTasks(): RuntimeResult<Task[]>;
-  getTask(taskId: string): RuntimeResult<Task | null>;
-  controlTask(action: OpenClawControlTaskAction, taskId: string, status?: TaskStatus): RuntimeResult<Task | null>;
-  addTask(payload: Pick<Task, 'title' | 'priority'> & Partial<Omit<Task, 'id' | 'title' | 'priority' | 'createdAt' | 'updatedAt'>>): RuntimeResult<Task>;
+  listTasks(): Promise<RuntimeResult<Task[]>>;
+  getTask(taskId: string): Promise<RuntimeResult<Task | null>>;
+  controlTask(action: OpenClawControlTaskAction, taskId: string, status?: TaskStatus): Promise<RuntimeResult<Task | null>>;
+  addTask(payload: Pick<Task, 'title' | 'priority'> & Partial<Omit<Task, 'id' | 'title' | 'priority' | 'createdAt' | 'updatedAt'>>): Promise<RuntimeResult<Task>>;
 
-  listEvents(limit?: number): RuntimeResult<Event[]>;
+  listEvents(limit?: number): Promise<RuntimeResult<Event[]>>;
   subscribe(listener: (payload: { snapshot: RuntimeSnapshot; event?: Event }) => void): () => void;
 }
 
@@ -167,6 +168,8 @@ function mapRawSnapshot(payload: unknown): RuntimeSnapshot {
 }
 
 export class OpenClawTransportRuntimeClient implements OpenClawRuntimeClient {
+  readonly configured = true;
+
   constructor(private readonly transport: OpenClawRuntimeTransport) {}
 
   private success<T>(data: T): RuntimeResult<T> {
@@ -190,41 +193,41 @@ export class OpenClawTransportRuntimeClient implements OpenClawRuntimeClient {
     return mapEvent(payload);
   }
 
-  fetchSnapshot(): RuntimeSnapshotResult {
+  async fetchSnapshot(): Promise<RuntimeSnapshotResult> {
     try {
-      return this.success(mapRawSnapshot(this.transport.fetchSnapshot()));
+      return this.success(mapRawSnapshot(await this.transport.fetchSnapshot()));
     } catch (error) {
       return this.unavailable(error, 'fetchSnapshot');
     }
   }
 
-  listAgents(): RuntimeResult<Agent[]> {
+  async listAgents(): Promise<RuntimeResult<Agent[]>> {
     try {
-      return this.success(mapList(this.transport.listAgents(), (value) => this.mappedAgentOrNull(value)));
+      return this.success(mapList(await this.transport.listAgents(), (value) => this.mappedAgentOrNull(value)));
     } catch (error) {
       return this.unavailable(error, 'listAgents');
     }
   }
 
-  getAgent(agentId: string): RuntimeResult<Agent | null> {
+  async getAgent(agentId: string): Promise<RuntimeResult<Agent | null>> {
     try {
-      return this.success(this.mappedAgentOrNull(this.transport.getAgent(agentId)));
+      return this.success(this.mappedAgentOrNull(await this.transport.getAgent(agentId)));
     } catch (error) {
       return this.unavailable(error, 'getAgent');
     }
   }
 
-  controlAgent(action: OpenClawControlAgentAction, agentId: string): RuntimeResult<Agent | null> {
+  async controlAgent(action: OpenClawControlAgentAction, agentId: string): Promise<RuntimeResult<Agent | null>> {
     try {
-      return this.success(this.mappedAgentOrNull(this.transport.controlAgent(action, agentId)));
+      return this.success(this.mappedAgentOrNull(await this.transport.controlAgent(action, agentId)));
     } catch (error) {
       return this.unavailable(error, 'controlAgent');
     }
   }
 
-  addAgent(payload: Pick<Agent, 'name' | 'role'> & Partial<Pick<Agent, 'status'>>): RuntimeResult<Agent> {
+  async addAgent(payload: Pick<Agent, 'name' | 'role'> & Partial<Pick<Agent, 'status'>>): Promise<RuntimeResult<Agent>> {
     try {
-      const created = this.mappedAgentOrNull(this.transport.addAgent(payload));
+      const created = this.mappedAgentOrNull(await this.transport.addAgent(payload));
       if (!created) {
         return { ok: false, code: 'UNAVAILABLE', message: 'OpenClaw transport returned malformed agent payload for addAgent.' };
       }
@@ -234,33 +237,33 @@ export class OpenClawTransportRuntimeClient implements OpenClawRuntimeClient {
     }
   }
 
-  listTasks(): RuntimeResult<Task[]> {
+  async listTasks(): Promise<RuntimeResult<Task[]>> {
     try {
-      return this.success(mapList(this.transport.listTasks(), (value) => this.mappedTaskOrNull(value)));
+      return this.success(mapList(await this.transport.listTasks(), (value) => this.mappedTaskOrNull(value)));
     } catch (error) {
       return this.unavailable(error, 'listTasks');
     }
   }
 
-  getTask(taskId: string): RuntimeResult<Task | null> {
+  async getTask(taskId: string): Promise<RuntimeResult<Task | null>> {
     try {
-      return this.success(this.mappedTaskOrNull(this.transport.getTask(taskId)));
+      return this.success(this.mappedTaskOrNull(await this.transport.getTask(taskId)));
     } catch (error) {
       return this.unavailable(error, 'getTask');
     }
   }
 
-  controlTask(action: OpenClawControlTaskAction, taskId: string, status?: TaskStatus): RuntimeResult<Task | null> {
+  async controlTask(action: OpenClawControlTaskAction, taskId: string, status?: TaskStatus): Promise<RuntimeResult<Task | null>> {
     try {
-      return this.success(this.mappedTaskOrNull(this.transport.controlTask(action, taskId, status)));
+      return this.success(this.mappedTaskOrNull(await this.transport.controlTask(action, taskId, status)));
     } catch (error) {
       return this.unavailable(error, 'controlTask');
     }
   }
 
-  addTask(payload: Pick<Task, 'title' | 'priority'> & Partial<Omit<Task, 'id' | 'title' | 'priority' | 'createdAt' | 'updatedAt'>>): RuntimeResult<Task> {
+  async addTask(payload: Pick<Task, 'title' | 'priority'> & Partial<Omit<Task, 'id' | 'title' | 'priority' | 'createdAt' | 'updatedAt'>>): Promise<RuntimeResult<Task>> {
     try {
-      const created = this.mappedTaskOrNull(this.transport.addTask(payload));
+      const created = this.mappedTaskOrNull(await this.transport.addTask(payload));
       if (!created) {
         return { ok: false, code: 'UNAVAILABLE', message: 'OpenClaw transport returned malformed task payload for addTask.' };
       }
@@ -270,9 +273,9 @@ export class OpenClawTransportRuntimeClient implements OpenClawRuntimeClient {
     }
   }
 
-  listEvents(limit?: number): RuntimeResult<Event[]> {
+  async listEvents(limit?: number): Promise<RuntimeResult<Event[]>> {
     try {
-      return this.success(mapList(this.transport.listEvents(limit), (value) => this.mappedEventOrNull(value)));
+      return this.success(mapList(await this.transport.listEvents(limit), (value) => this.mappedEventOrNull(value)));
     } catch (error) {
       return this.unavailable(error, 'listEvents');
     }
@@ -288,6 +291,8 @@ export class OpenClawTransportRuntimeClient implements OpenClawRuntimeClient {
 }
 
 export class OpenClawStubRuntimeClient implements OpenClawRuntimeClient {
+  readonly configured = false;
+
   constructor(private readonly reason: RuntimeNotConfiguredReason = 'client-unavailable') {}
 
   private notConfigured(operation: string): RuntimeResult<never> {
@@ -299,43 +304,43 @@ export class OpenClawStubRuntimeClient implements OpenClawRuntimeClient {
     };
   }
 
-  fetchSnapshot(): RuntimeSnapshotResult {
+  async fetchSnapshot(): Promise<RuntimeSnapshotResult> {
     return this.notConfigured('fetchSnapshot');
   }
 
-  listAgents(): RuntimeResult<Agent[]> {
+  async listAgents(): Promise<RuntimeResult<Agent[]>> {
     return this.notConfigured('listAgents');
   }
 
-  getAgent(): RuntimeResult<Agent | null> {
+  async getAgent(): Promise<RuntimeResult<Agent | null>> {
     return this.notConfigured('getAgent');
   }
 
-  controlAgent(): RuntimeResult<Agent | null> {
+  async controlAgent(): Promise<RuntimeResult<Agent | null>> {
     return this.notConfigured('controlAgent');
   }
 
-  addAgent(): RuntimeResult<Agent> {
+  async addAgent(): Promise<RuntimeResult<Agent>> {
     return this.notConfigured('addAgent');
   }
 
-  listTasks(): RuntimeResult<Task[]> {
+  async listTasks(): Promise<RuntimeResult<Task[]>> {
     return this.notConfigured('listTasks');
   }
 
-  getTask(): RuntimeResult<Task | null> {
+  async getTask(): Promise<RuntimeResult<Task | null>> {
     return this.notConfigured('getTask');
   }
 
-  controlTask(): RuntimeResult<Task | null> {
+  async controlTask(): Promise<RuntimeResult<Task | null>> {
     return this.notConfigured('controlTask');
   }
 
-  addTask(): RuntimeResult<Task> {
+  async addTask(): Promise<RuntimeResult<Task>> {
     return this.notConfigured('addTask');
   }
 
-  listEvents(): RuntimeResult<Event[]> {
+  async listEvents(): Promise<RuntimeResult<Event[]>> {
     return this.notConfigured('listEvents');
   }
 
@@ -390,8 +395,8 @@ export class OpenClawRuntimeSource implements RuntimeSource {
     throw new RuntimeSourceUnavailableError('RUNTIME_UNAVAILABLE', `[RUNTIME_UNAVAILABLE] ${detail}`);
   }
 
-  private withFallback<T>(operation: string, resolver: () => RuntimeResult<T>, fallback: () => T): T {
-    const result = resolver();
+  private async withFallback<T>(operation: string, resolver: () => Promise<RuntimeResult<T>>, fallback: () => Promise<T>): Promise<T> {
+    const result = await resolver();
     if (result.ok) {
       return result.data;
     }
@@ -404,72 +409,74 @@ export class OpenClawRuntimeSource implements RuntimeSource {
     return fallback();
   }
 
-  getOverview(): Overview {
-    return this.getSnapshot().overview;
+  async getOverview(): Promise<Overview> {
+    return (await this.getSnapshot()).overview;
   }
 
-  getSnapshot(): RuntimeSnapshot {
+  async getSnapshot(): Promise<RuntimeSnapshot> {
     return this.withFallback('fetchSnapshot', () => this.client.fetchSnapshot(), () => this.fallback.getSnapshot());
   }
 
-  listAgents(): Agent[] {
+  async listAgents(): Promise<Agent[]> {
     return this.withFallback('listAgents', () => this.client.listAgents(), () => this.fallback.listAgents());
   }
 
-  listTasks(): Task[] {
+  async listTasks(): Promise<Task[]> {
     return this.withFallback('listTasks', () => this.client.listTasks(), () => this.fallback.listTasks());
   }
 
-  listEvents(limit?: number): Event[] {
+  async listEvents(limit?: number): Promise<Event[]> {
     return this.withFallback('listEvents', () => this.client.listEvents(limit), () => this.fallback.listEvents(limit));
   }
 
-  addAgent(payload: Pick<Agent, 'name' | 'role'> & Partial<Pick<Agent, 'status'>>): Agent {
+  async addAgent(payload: Pick<Agent, 'name' | 'role'> & Partial<Pick<Agent, 'status'>>): Promise<Agent> {
     return this.withFallback('addAgent', () => this.client.addAgent(payload), () => this.fallback.addAgent(payload));
   }
 
-  pauseAgent(agentId: string): Agent | undefined {
-    const value = this.withFallback(
+  async pauseAgent(agentId: string): Promise<Agent | undefined> {
+    const value = await this.withFallback(
       'pauseAgent',
       () => this.client.controlAgent('pause', agentId),
-      () => this.fallback.pauseAgent(agentId) ?? null
+      async () => (await this.fallback.pauseAgent(agentId)) ?? null
     );
     return value ?? undefined;
   }
 
-  resumeAgent(agentId: string): Agent | undefined {
-    const value = this.withFallback(
+  async resumeAgent(agentId: string): Promise<Agent | undefined> {
+    const value = await this.withFallback(
       'resumeAgent',
       () => this.client.controlAgent('resume', agentId),
-      () => this.fallback.resumeAgent(agentId) ?? null
+      async () => (await this.fallback.resumeAgent(agentId)) ?? null
     );
     return value ?? undefined;
   }
 
-  addTask(payload: Pick<Task, 'title' | 'priority'> & Partial<Omit<Task, 'id' | 'title' | 'priority' | 'createdAt' | 'updatedAt'>>): Task {
+  async addTask(
+    payload: Pick<Task, 'title' | 'priority'> & Partial<Omit<Task, 'id' | 'title' | 'priority' | 'createdAt' | 'updatedAt'>>
+  ): Promise<Task> {
     return this.withFallback('addTask', () => this.client.addTask(payload), () => this.fallback.addTask(payload));
   }
 
-  updateTaskStatus(taskId: string, status: TaskStatus): Task | undefined {
-    const value = this.withFallback(
+  async updateTaskStatus(taskId: string, status: TaskStatus): Promise<Task | undefined> {
+    const value = await this.withFallback(
       'updateTaskStatus',
       () => this.client.controlTask('update_status', taskId, status),
-      () => this.fallback.updateTaskStatus(taskId, status) ?? null
+      async () => (await this.fallback.updateTaskStatus(taskId, status)) ?? null
     );
     return value ?? undefined;
   }
 
-  retryTask(taskId: string): Task | undefined {
-    const value = this.withFallback(
+  async retryTask(taskId: string): Promise<Task | undefined> {
+    const value = await this.withFallback(
       'retryTask',
       () => this.client.controlTask('retry', taskId),
-      () => this.fallback.retryTask(taskId) ?? null
+      async () => (await this.fallback.retryTask(taskId)) ?? null
     );
     return value ?? undefined;
   }
 
   onStateChange(listener: (payload: { snapshot: RuntimeSnapshot; event?: Event }) => void): () => void {
-    if (this.allowFallback) {
+    if (this.allowFallback && !this.client.configured) {
       return this.fallback.onStateChange(listener);
     }
 

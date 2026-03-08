@@ -14,24 +14,24 @@ export interface OpenClawRuntimeRawEventEnvelope {
 }
 
 export interface OpenClawRuntimeTransport {
-  fetchSnapshot(): OpenClawRuntimeRawSnapshot;
-  listAgents(): unknown[];
-  getAgent(agentId: string): unknown | null;
-  controlAgent(action: 'pause' | 'resume', agentId: string): unknown | null;
-  addAgent(payload: { name: string; role: string; status?: AgentStatus }): unknown;
+  fetchSnapshot(): Promise<OpenClawRuntimeRawSnapshot>;
+  listAgents(): Promise<unknown[]>;
+  getAgent(agentId: string): Promise<unknown | null>;
+  controlAgent(action: 'pause' | 'resume', agentId: string): Promise<unknown | null>;
+  addAgent(payload: { name: string; role: string; status?: AgentStatus }): Promise<unknown>;
 
-  listTasks(): unknown[];
-  getTask(taskId: string): unknown | null;
-  controlTask(action: 'retry' | 'update_status', taskId: string, status?: TaskStatus): unknown | null;
+  listTasks(): Promise<unknown[]>;
+  getTask(taskId: string): Promise<unknown | null>;
+  controlTask(action: 'retry' | 'update_status', taskId: string, status?: TaskStatus): Promise<unknown | null>;
   addTask(payload: {
     title: string;
     priority: 'low' | 'medium' | 'high';
     description?: string;
     assigneeAgentId?: string;
     status?: TaskStatus;
-  }): unknown;
+  }): Promise<unknown>;
 
-  listEvents(limit?: number): unknown[];
+  listEvents(limit?: number): Promise<unknown[]>;
   subscribe(listener: (payload: OpenClawRuntimeRawEventEnvelope) => void): () => void;
 }
 
@@ -83,7 +83,11 @@ export class FixtureRuntimeTransport implements OpenClawRuntimeTransport {
 
   private emit(event?: unknown) {
     const payload: OpenClawRuntimeRawEventEnvelope = {
-      snapshot: this.fetchSnapshot(),
+      snapshot: {
+        agents: deepClone(this.state.agents),
+        tasks: deepClone(this.state.tasks),
+        events: deepClone(this.state.events)
+      },
       event
     };
 
@@ -94,7 +98,7 @@ export class FixtureRuntimeTransport implements OpenClawRuntimeTransport {
     return new Date().toISOString();
   }
 
-  fetchSnapshot(): OpenClawRuntimeRawSnapshot {
+  async fetchSnapshot(): Promise<OpenClawRuntimeRawSnapshot> {
     return {
       agents: deepClone(this.state.agents),
       tasks: deepClone(this.state.tasks),
@@ -102,11 +106,11 @@ export class FixtureRuntimeTransport implements OpenClawRuntimeTransport {
     };
   }
 
-  listAgents(): unknown[] {
+  async listAgents(): Promise<unknown[]> {
     return deepClone(this.state.agents);
   }
 
-  getAgent(agentId: string): unknown | null {
+  async getAgent(agentId: string): Promise<unknown | null> {
     const match = this.state.agents.find((item) => {
       const record = asRecord(item);
       return record?.id === agentId;
@@ -115,7 +119,7 @@ export class FixtureRuntimeTransport implements OpenClawRuntimeTransport {
     return match ? deepClone(match) : null;
   }
 
-  controlAgent(action: 'pause' | 'resume', agentId: string): unknown | null {
+  async controlAgent(action: 'pause' | 'resume', agentId: string): Promise<unknown | null> {
     const target = this.state.agents.find((item) => asRecord(item)?.id === agentId);
     const record = asRecord(target);
     if (!record) return null;
@@ -136,7 +140,7 @@ export class FixtureRuntimeTransport implements OpenClawRuntimeTransport {
     return deepClone(record);
   }
 
-  addAgent(payload: { name: string; role: string; status?: AgentStatus }): unknown {
+  async addAgent(payload: { name: string; role: string; status?: AgentStatus }): Promise<unknown> {
     const agent = {
       id: `oc-agent-${Date.now()}`,
       name: payload.name,
@@ -160,16 +164,16 @@ export class FixtureRuntimeTransport implements OpenClawRuntimeTransport {
     return deepClone(agent);
   }
 
-  listTasks(): unknown[] {
+  async listTasks(): Promise<unknown[]> {
     return deepClone(this.state.tasks);
   }
 
-  getTask(taskId: string): unknown | null {
+  async getTask(taskId: string): Promise<unknown | null> {
     const match = this.state.tasks.find((item) => asRecord(item)?.id === taskId);
     return match ? deepClone(match) : null;
   }
 
-  controlTask(action: 'retry' | 'update_status', taskId: string, status?: TaskStatus): unknown | null {
+  async controlTask(action: 'retry' | 'update_status', taskId: string, status?: TaskStatus): Promise<unknown | null> {
     const target = this.state.tasks.find((item) => asRecord(item)?.id === taskId);
     const record = asRecord(target);
     if (!record) return null;
@@ -190,13 +194,13 @@ export class FixtureRuntimeTransport implements OpenClawRuntimeTransport {
     return deepClone(record);
   }
 
-  addTask(payload: {
+  async addTask(payload: {
     title: string;
     priority: 'low' | 'medium' | 'high';
     description?: string;
     assigneeAgentId?: string;
     status?: TaskStatus;
-  }): unknown {
+  }): Promise<unknown> {
     const now = this.nowIso();
     const task = {
       id: `oc-task-${Date.now()}`,
@@ -224,7 +228,7 @@ export class FixtureRuntimeTransport implements OpenClawRuntimeTransport {
     return deepClone(task);
   }
 
-  listEvents(limit?: number): unknown[] {
+  async listEvents(limit?: number): Promise<unknown[]> {
     const list = deepClone(this.state.events);
     if (typeof limit === 'number' && Number.isFinite(limit)) {
       return list.slice(0, Math.max(0, Math.floor(limit)));
@@ -241,6 +245,333 @@ export class FixtureRuntimeTransport implements OpenClawRuntimeTransport {
   }
 }
 
+interface HttpOpenClawRuntimeTransportOptions {
+  endpoint: string;
+  apiKey: string;
+  authHeaderName?: string;
+  authScheme?: string;
+  snapshotPath?: string;
+  agentsPath?: string;
+  tasksPath?: string;
+  eventsPath?: string;
+  pollMs?: number;
+}
+
+function parsePositiveInteger(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function trimSlashes(value: string): string {
+  return value.replace(/^\/+|\/+$/g, '');
+}
+
+function joinPath(basePath: string, ...segments: string[]): string {
+  const parts = [basePath, ...segments].map(trimSlashes).filter((value) => value.length > 0);
+  return `/${parts.join('/')}`;
+}
+
+function isAbsoluteHttpUrl(value: string): boolean {
+  return /^https?:\/\//i.test(value);
+}
+
+function unwrapTransportPayload(payload: unknown): unknown {
+  const record = asRecord(payload);
+  if (record?.success === true && 'data' in record) {
+    return record.data;
+  }
+
+  return payload;
+}
+
+function extractErrorMessage(payload: unknown, statusCode: number): string {
+  const record = asRecord(payload);
+  const errorRecord = asRecord(record?.error);
+  const message =
+    asString(errorRecord?.message) ??
+    asString(record?.message) ??
+    `OpenClaw runtime HTTP request failed with status ${statusCode}.`;
+
+  return message;
+}
+
+export class HttpOpenClawRuntimeTransport implements OpenClawRuntimeTransport {
+  private readonly endpoint: string;
+  private readonly apiKey: string;
+  private readonly authHeaderName: string;
+  private readonly authScheme: string;
+  private readonly snapshotPath: string;
+  private readonly agentsPath: string;
+  private readonly tasksPath: string;
+  private readonly eventsPath: string;
+  private readonly pollMs: number;
+
+  constructor(options: HttpOpenClawRuntimeTransportOptions) {
+    this.endpoint = options.endpoint;
+    this.apiKey = options.apiKey;
+    this.authHeaderName = options.authHeaderName ?? 'authorization';
+    this.authScheme = options.authScheme ?? 'Bearer';
+    this.snapshotPath = options.snapshotPath ?? '/snapshot';
+    this.agentsPath = options.agentsPath ?? '/agents';
+    this.tasksPath = options.tasksPath ?? '/tasks';
+    this.eventsPath = options.eventsPath ?? '/events';
+    this.pollMs = options.pollMs ?? 5000;
+  }
+
+  private buildUrl(pathname: string, query?: Record<string, string | number | undefined>): URL {
+    const resolved = isAbsoluteHttpUrl(pathname)
+      ? new URL(pathname)
+      : new URL(trimSlashes(pathname), this.endpoint.endsWith('/') ? this.endpoint : `${this.endpoint}/`);
+
+    if (query) {
+      for (const [key, value] of Object.entries(query)) {
+        if (value === undefined) continue;
+        resolved.searchParams.set(key, String(value));
+      }
+    }
+
+    return resolved;
+  }
+
+  private headers(body?: unknown): HeadersInit {
+    const headers: Record<string, string> = {
+      Accept: 'application/json'
+    };
+
+    const authValue = this.authScheme.length > 0 ? `${this.authScheme} ${this.apiKey}` : this.apiKey;
+    headers[this.authHeaderName] = authValue;
+
+    if (body !== undefined) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    return headers;
+  }
+
+  private async request(
+    pathname: string,
+    init: Omit<RequestInit, 'headers' | 'body'> & { body?: unknown } = {},
+    options: { allowNotFound?: boolean } = {}
+  ): Promise<unknown | null> {
+    const { body, ...requestInit } = init;
+    const response = await fetch(this.buildUrl(pathname), {
+      ...requestInit,
+      headers: this.headers(body),
+      body: body === undefined ? undefined : JSON.stringify(body)
+    });
+
+    if (options.allowNotFound && response.status === 404) {
+      return null;
+    }
+
+    const text = await response.text();
+    let payload: unknown = null;
+
+    if (text.trim().length > 0) {
+      try {
+        payload = JSON.parse(text) as unknown;
+      } catch {
+        throw new Error(`OpenClaw runtime HTTP response at ${pathname} was not valid JSON.`);
+      }
+    }
+
+    if (!response.ok) {
+      throw new Error(extractErrorMessage(payload, response.status));
+    }
+
+    return unwrapTransportPayload(payload);
+  }
+
+  async fetchSnapshot(): Promise<OpenClawRuntimeRawSnapshot> {
+    const payload = await this.request(this.snapshotPath, {}, { allowNotFound: true });
+    if (payload) {
+      const record = asRecord(payload);
+      const nestedSnapshot = asRecord(record?.snapshot);
+      if (nestedSnapshot) {
+        return nestedSnapshot as OpenClawRuntimeRawSnapshot;
+      }
+
+      return (record ?? {}) as OpenClawRuntimeRawSnapshot;
+    }
+
+    const [agents, tasks, events] = await Promise.all([
+      this.listAgents(),
+      this.listTasks(),
+      this.listEvents()
+    ]);
+
+    return { agents, tasks, events };
+  }
+
+  async listAgents(): Promise<unknown[]> {
+    const payload = await this.request(this.agentsPath, {}, { allowNotFound: true });
+    if (payload === null) return [];
+
+    if (Array.isArray(payload)) return payload;
+    const record = asRecord(payload);
+    return Array.isArray(record?.agents) ? record.agents : [];
+  }
+
+  async getAgent(agentId: string): Promise<unknown | null> {
+    const itemPath = joinPath(this.agentsPath, encodeURIComponent(agentId));
+    const payload = await this.request(itemPath, {}, { allowNotFound: true });
+    if (payload !== null) {
+      const record = asRecord(payload);
+      return record?.agent ?? payload;
+    }
+
+    const agents = await this.listAgents();
+    return agents.find((item) => asRecord(item)?.id === agentId) ?? null;
+  }
+
+  async controlAgent(action: 'pause' | 'resume', agentId: string): Promise<unknown | null> {
+    const controlPath = joinPath(this.agentsPath, encodeURIComponent(agentId), action);
+    const payload = await this.request(controlPath, { method: 'POST' }, { allowNotFound: true });
+    return payload === null ? null : (asRecord(payload)?.agent ?? payload);
+  }
+
+  async addAgent(payload: { name: string; role: string; status?: AgentStatus }): Promise<unknown> {
+    const created = await this.request(this.agentsPath, {
+      method: 'POST',
+      body: payload
+    });
+
+    return asRecord(created)?.agent ?? created;
+  }
+
+  async listTasks(): Promise<unknown[]> {
+    const payload = await this.request(this.tasksPath, {}, { allowNotFound: true });
+    if (payload === null) return [];
+
+    if (Array.isArray(payload)) return payload;
+    const record = asRecord(payload);
+    return Array.isArray(record?.tasks) ? record.tasks : [];
+  }
+
+  async getTask(taskId: string): Promise<unknown | null> {
+    const itemPath = joinPath(this.tasksPath, encodeURIComponent(taskId));
+    const payload = await this.request(itemPath, {}, { allowNotFound: true });
+    if (payload !== null) {
+      const record = asRecord(payload);
+      return record?.task ?? payload;
+    }
+
+    const tasks = await this.listTasks();
+    return tasks.find((item) => asRecord(item)?.id === taskId) ?? null;
+  }
+
+  async controlTask(action: 'retry' | 'update_status', taskId: string, status?: TaskStatus): Promise<unknown | null> {
+    if (action === 'retry') {
+      const retryPath = joinPath(this.tasksPath, encodeURIComponent(taskId), 'retry');
+      const payload = await this.request(retryPath, { method: 'POST' }, { allowNotFound: true });
+      return payload === null ? null : (asRecord(payload)?.task ?? payload);
+    }
+
+    const statusPath = joinPath(this.tasksPath, encodeURIComponent(taskId), 'status');
+    const payload = await this.request(
+      statusPath,
+      {
+        method: 'PATCH',
+        body: { status }
+      },
+      { allowNotFound: true }
+    );
+    return payload === null ? null : (asRecord(payload)?.task ?? payload);
+  }
+
+  async addTask(payload: {
+    title: string;
+    priority: 'low' | 'medium' | 'high';
+    description?: string;
+    assigneeAgentId?: string;
+    status?: TaskStatus;
+  }): Promise<unknown> {
+    const created = await this.request(this.tasksPath, {
+      method: 'POST',
+      body: payload
+    });
+
+    return asRecord(created)?.task ?? created;
+  }
+
+  async listEvents(limit?: number): Promise<unknown[]> {
+    const payload = await this.request(this.eventsPath, { method: 'GET' }, { allowNotFound: true });
+    if (payload === null) return [];
+
+    const events =
+      Array.isArray(payload) ? payload : Array.isArray(asRecord(payload)?.events) ? (asRecord(payload)?.events as unknown[]) : [];
+
+    if (typeof limit === 'number' && Number.isFinite(limit)) {
+      return events.slice(0, Math.max(0, Math.floor(limit)));
+    }
+
+    return events;
+  }
+
+  subscribe(listener: (payload: OpenClawRuntimeRawEventEnvelope) => void): () => void {
+    let active = true;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let previousSignature: string | null = null;
+
+    const schedule = (delay: number) => {
+      timer = setTimeout(run, delay);
+      timer.unref?.();
+    };
+
+    const run = async () => {
+      if (!active) return;
+
+      try {
+        const snapshot = await this.fetchSnapshot();
+        const signature = JSON.stringify(snapshot);
+
+        if (previousSignature !== null && previousSignature !== signature) {
+          listener({ snapshot });
+        }
+
+        previousSignature = signature;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn(`[runtime][openclaw-http] subscription poll failed: ${message}`);
+      } finally {
+        if (active) {
+          schedule(this.pollMs);
+        }
+      }
+    };
+
+    schedule(0);
+
+    return () => {
+      active = false;
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    };
+  }
+}
+
 export function createOpenClawTransportFromEnv(): OpenClawRuntimeTransport | null {
-  return FixtureRuntimeTransport.fromEnv();
+  const fixture = FixtureRuntimeTransport.fromEnv();
+  if (fixture) return fixture;
+
+  const endpoint = process.env.OPENCLAW_RUNTIME_ENDPOINT?.trim();
+  const apiKey = process.env.OPENCLAW_RUNTIME_API_KEY?.trim();
+
+  if (!endpoint || !apiKey) {
+    return null;
+  }
+
+  return new HttpOpenClawRuntimeTransport({
+    endpoint,
+    apiKey,
+    authHeaderName: process.env.OPENCLAW_RUNTIME_AUTH_HEADER?.trim() || undefined,
+    authScheme: process.env.OPENCLAW_RUNTIME_AUTH_SCHEME?.trim() ?? 'Bearer',
+    snapshotPath: process.env.OPENCLAW_RUNTIME_SNAPSHOT_PATH?.trim() || undefined,
+    agentsPath: process.env.OPENCLAW_RUNTIME_AGENTS_PATH?.trim() || undefined,
+    tasksPath: process.env.OPENCLAW_RUNTIME_TASKS_PATH?.trim() || undefined,
+    eventsPath: process.env.OPENCLAW_RUNTIME_EVENTS_PATH?.trim() || undefined,
+    pollMs: parsePositiveInteger(process.env.OPENCLAW_RUNTIME_POLL_MS, 5000)
+  });
 }

@@ -4,47 +4,47 @@ import { MockStore, store } from '../store/mockStore';
 export class MockRuntimeSource implements RuntimeSource {
   constructor(private readonly mockStore: MockStore) {}
 
-  getOverview() {
+  async getOverview() {
     return this.mockStore.getOverview();
   }
 
-  getSnapshot() {
+  async getSnapshot() {
     return this.mockStore.getSnapshot();
   }
 
-  listAgents() {
+  async listAgents() {
     return this.mockStore.listAgents();
   }
 
-  listTasks() {
+  async listTasks() {
     return this.mockStore.listTasks();
   }
 
-  listEvents(limit?: number) {
+  async listEvents(limit?: number) {
     return this.mockStore.listEvents(limit);
   }
 
-  addAgent(payload: Parameters<MockStore['addAgent']>[0]) {
+  async addAgent(payload: Parameters<MockStore['addAgent']>[0]) {
     return this.mockStore.addAgent(payload);
   }
 
-  pauseAgent(agentId: string) {
+  async pauseAgent(agentId: string) {
     return this.mockStore.pauseAgent(agentId);
   }
 
-  resumeAgent(agentId: string) {
+  async resumeAgent(agentId: string) {
     return this.mockStore.resumeAgent(agentId);
   }
 
-  addTask(payload: Parameters<MockStore['addTask']>[0]) {
+  async addTask(payload: Parameters<MockStore['addTask']>[0]) {
     return this.mockStore.addTask(payload);
   }
 
-  updateTaskStatus(taskId: string, status: Parameters<MockStore['updateTaskStatus']>[1]) {
+  async updateTaskStatus(taskId: string, status: Parameters<MockStore['updateTaskStatus']>[1]) {
     return this.mockStore.updateTaskStatus(taskId, status);
   }
 
-  retryTask(taskId: string) {
+  async retryTask(taskId: string) {
     return this.mockStore.retryTask(taskId);
   }
 
