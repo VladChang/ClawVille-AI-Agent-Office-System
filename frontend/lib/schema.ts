@@ -1,5 +1,6 @@
 import {
   getEventLevelWeight,
+  inferEventLevel,
   isErrorLevel,
   mapEventLevelFromType,
   normalizeAgentStatus,
@@ -8,14 +9,14 @@ import {
 } from '../../shared/contracts';
 import type { Agent, Event, Task } from '@/types/models';
 
-export { getEventLevelWeight, isErrorLevel, mapEventLevelFromType, normalizeAgentStatus, normalizeEventLevel, normalizeTaskStatus };
+export { getEventLevelWeight, inferEventLevel, isErrorLevel, mapEventLevelFromType, normalizeAgentStatus, normalizeEventLevel, normalizeTaskStatus };
 
 export type ApiEventShape = Omit<Event, 'level'> & Partial<Pick<Event, 'level'>>;
 
 export function normalizeEvent(event: ApiEventShape): Event {
   return {
     ...event,
-    level: normalizeEventLevel(event.level, event.type)
+    level: normalizeEventLevel(event.level, event.type, event.metadata)
   };
 }
 

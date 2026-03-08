@@ -9,7 +9,8 @@ import {
   EventType,
   Overview,
   Task,
-  TaskStatus
+  TaskStatus,
+  normalizeEventLevel
 } from '../models/types';
 import { RuntimeSnapshot } from '../runtime/runtimeSource';
 import {
@@ -23,6 +24,13 @@ const nowIso = () => new Date().toISOString();
 const DEFAULT_MAX_EVENTS = 500;
 const DEFAULT_MAX_TASK_TRANSITIONS = 1000;
 const DEFAULT_MAX_AGENT_STATUS_CHANGES = 1000;
+
+function canonicalizeEvent(event: Event): Event {
+  return {
+    ...event,
+    level: normalizeEventLevel(event.level, event.type, event.metadata)
+  };
+}
 
 function parsePositiveInteger(value: string | undefined, fallback: number): number {
   const parsed = Number(value);
@@ -74,12 +82,12 @@ export class MockStore {
   ];
 
   private events: Event[] = [
-    {
+    canonicalizeEvent({
       id: 'e-1',
       type: 'system',
       message: 'ClawVille backend initialized',
       timestamp: nowIso()
-    }
+    })
   ];
 
   constructor(private readonly persistence?: JsonFilePersistence) {
@@ -88,7 +96,7 @@ export class MockStore {
 
     this.agents = persisted.snapshot.agents;
     this.tasks = persisted.snapshot.tasks;
-    this.events = persisted.snapshot.events.slice(-this.maxEvents);
+    this.events = persisted.snapshot.events.map(canonicalizeEvent).slice(-this.maxEvents);
     this.taskTransitions = persisted.history.taskTransitions.slice(-this.maxTaskTransitions);
     this.agentStatusChanges = persisted.history.agentStatusChanges.slice(-this.maxAgentStatusChanges);
   }
@@ -267,13 +275,13 @@ export class MockStore {
   }
 
   pushEvent(type: EventType, message: string, metadata?: Record<string, unknown>): Event {
-    const event: Event = {
+    const event = canonicalizeEvent({
       id: uuidv4(),
       type,
       message,
       timestamp: nowIso(),
       metadata
-    };
+    });
     this.pushBounded(this.events, event, this.maxEvents);
     return event;
   }

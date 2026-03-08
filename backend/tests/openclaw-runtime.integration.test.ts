@@ -33,6 +33,7 @@ test('openclaw transport fixture maps payload into dashboard schema and filters 
   assert.equal(snapshot.tasks[1]?.priority, 'medium');
   assert.equal(snapshot.events.length, 1);
   assert.equal(snapshot.events[0]?.id, 'oc-e-1');
+  assert.equal(snapshot.events[0]?.level, 'info');
 
   assert.equal(snapshot.overview.counts.agents, 1);
   assert.equal(snapshot.overview.counts.tasks, 2);
@@ -66,14 +67,16 @@ test('openclaw state-change subscription stays schema-consistent with snapshot/l
   let stateChangedPayload:
     | {
         snapshot: { agents: Array<{ id: string; status: string }> };
+        eventLevel?: string;
       }
     | undefined;
 
-  const unsubscribe = source.onStateChange(({ snapshot }) => {
+  const unsubscribe = source.onStateChange(({ snapshot, event }) => {
     stateChangedPayload = {
       snapshot: {
         agents: snapshot.agents.map((agent) => ({ id: agent.id, status: agent.status }))
-      }
+      },
+      eventLevel: event?.level
     };
   });
 
@@ -90,6 +93,7 @@ test('openclaw state-change subscription stays schema-consistent with snapshot/l
   assert.ok(stateChangedPayload, 'expected state-change payload from runtime subscription');
   assert.equal(changedAgent?.status, 'offline');
   assert.equal(listedAgent?.status, 'offline');
+  assert.equal(stateChangedPayload?.eventLevel, 'warning');
 
   unsubscribe();
 });

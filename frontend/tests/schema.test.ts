@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  inferEventLevel,
   normalizeAgentStatus,
   normalizeTaskStatus,
   normalizeEvent,
@@ -20,15 +21,19 @@ test('event level mapping and normalization cover websocket payload shape drift'
   assert.equal(mapEventLevelFromType('task.blocked'), 'error');
   assert.equal(mapEventLevelFromType('agent_paused'), 'warning');
   assert.equal(mapEventLevelFromType('task.updated'), 'info');
+  assert.equal(inferEventLevel('task_updated', { status: 'blocked' }), 'error');
+  assert.equal(inferEventLevel('agent_status_changed', { status: 'offline' }), 'warning');
 
   assert.equal(normalizeEventLevel(undefined, 'task.blocked'), 'error');
   assert.equal(normalizeEventLevel(undefined, 'task.retry'), 'warning');
+  assert.equal(normalizeEventLevel(undefined, 'task_updated', { status: 'blocked' }), 'error');
   assert.equal(normalizeEventLevel('info', 'task.blocked'), 'info');
 
   const normalized = normalizeEvent({
     id: 'e-1',
     timestamp: '2026-03-07T00:00:00Z',
-    type: 'task.blocked',
+    type: 'task_updated',
+    metadata: { status: 'blocked' },
     message: 'blocked due to dependency'
   });
 

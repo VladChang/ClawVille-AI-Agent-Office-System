@@ -109,8 +109,24 @@ export function mapEventLevelFromType(type: string): EventLevel {
   return 'info';
 }
 
-export function normalizeEventLevel(level: string | undefined, type: string): EventLevel {
-  return includesValue(EVENT_LEVELS, level) ? level : mapEventLevelFromType(type);
+function asMetadataStatus(metadata: Record<string, unknown> | undefined): string | undefined {
+  const value = metadata?.status;
+  return typeof value === 'string' && value.length > 0 ? value.toLowerCase() : undefined;
+}
+
+export function inferEventLevel(type: string, metadata?: Record<string, unknown>): EventLevel {
+  const status = asMetadataStatus(metadata);
+  if (status === 'blocked') return 'error';
+  if (status === 'offline' && type.toLowerCase().includes('agent')) return 'warning';
+  return mapEventLevelFromType(type);
+}
+
+export function normalizeEventLevel(
+  level: string | undefined,
+  type: string,
+  metadata?: Record<string, unknown>
+): EventLevel {
+  return includesValue(EVENT_LEVELS, level) ? level : inferEventLevel(type, metadata);
 }
 
 export function getEventLevelWeight(level: EventLevel): number {

@@ -43,6 +43,40 @@ test('mock store restores from persisted runtime state on startup', async () => 
   assert.equal(found?.name, 'Persisted Agent');
 });
 
+test('mock store upgrades persisted events without canonical level on load', async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'clawville-persist-'));
+  const filePath = path.join(dir, 'runtime-state.json');
+  const persistence = new JsonFilePersistence(filePath);
+
+  persistence.save({
+    version: 1,
+    snapshot: {
+      agents: [],
+      tasks: [],
+      events: [
+        {
+          id: 'legacy-event',
+          type: 'task_updated',
+          message: 'Legacy blocked transition',
+          timestamp: '2026-03-09T00:00:00.000Z',
+          metadata: { status: 'blocked' }
+        }
+      ]
+    },
+    history: {
+      taskTransitions: [],
+      agentStatusChanges: []
+    }
+  });
+  await persistence.flush();
+
+  const restored = new MockStore(persistence);
+  const restoredEvent = restored.listEvents(1)[0];
+
+  assert.ok(restoredEvent);
+  assert.equal(restoredEvent?.level, 'error');
+});
+
 test('mock store trims persisted events and history to configured retention limits', async () => {
   process.env.RUNTIME_MAX_EVENTS = '3';
   process.env.RUNTIME_MAX_TASK_TRANSITIONS = '2';

@@ -20,6 +20,7 @@ function emptySnapshot(message: string): RuntimeSnapshot {
       {
         id: `runtime-${Date.now()}`,
         type: 'system',
+        level: 'warning',
         timestamp: now,
         message
       }

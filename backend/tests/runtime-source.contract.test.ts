@@ -10,6 +10,7 @@ test('MockRuntimeSource honors runtime source contract for snapshot/list/control
   assert.equal(Array.isArray(snapshotBefore.agents), true);
   assert.equal(Array.isArray(snapshotBefore.tasks), true);
   assert.equal(Array.isArray(snapshotBefore.events), true);
+  assert.equal(snapshotBefore.events.every((event) => typeof event.level === 'string'), true);
 
   const agent = source.addAgent({ name: 'Contract Agent', role: 'QA' });
   const paused = source.pauseAgent(agent.id);
@@ -26,9 +27,10 @@ test('MockRuntimeSource honors runtime source contract for snapshot/list/control
     seenStateChanged = true;
     assert.equal(Array.isArray(snapshot.agents), true);
     assert.equal(typeof event?.type, 'string');
+    assert.equal(event?.level, 'error');
   });
 
-  source.updateTaskStatus(task.id, 'done');
+  source.updateTaskStatus(task.id, 'blocked');
   unsubscribe();
 
   assert.equal(seenStateChanged, true);

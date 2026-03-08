@@ -1,4 +1,4 @@
-import { Agent, AgentStatus, Event, EventType, Overview, Task, TaskStatus } from '../models/types';
+import { Agent, AgentStatus, Event, EventType, Overview, Task, TaskStatus, normalizeEventLevel } from '../models/types';
 import { RuntimeSnapshot, RuntimeSource } from './runtimeSource';
 import { OpenClawRuntimeRawEventEnvelope, OpenClawRuntimeTransport } from './openclawTransport';
 
@@ -117,6 +117,7 @@ function mapEvent(payload: unknown): Event | null {
     type: normalizeEventType(record.type),
     message,
     timestamp: asString(record.timestamp) ?? new Date(0).toISOString(),
+    level: normalizeEventLevel(asOptionalString(record.level), normalizeEventType(record.type), metadata),
     metadata
   };
 }
@@ -483,6 +484,7 @@ export class OpenClawRuntimeSource implements RuntimeSource {
     return {
       id: `system-${Date.now()}`,
       type: 'system',
+      level: 'warning',
       timestamp: new Date().toISOString(),
       message: '[RUNTIME_NOT_CONFIGURED] OpenClaw runtime is not configured. Connect adapter credentials/endpoint or set ALLOW_RUNTIME_FALLBACK=true for mock fallback.'
     };
