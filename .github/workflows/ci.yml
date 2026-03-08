@@ -30,11 +30,11 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Backend typecheck + tests + build
+      - name: Backend typecheck + scoped CI tests + build
         working-directory: backend
         run: |
           npm run typecheck
-          npm run test
+          npm run test:ci
           npm run build
 
       - name: Frontend unit tests

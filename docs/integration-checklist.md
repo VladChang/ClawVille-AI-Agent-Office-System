@@ -1,11 +1,13 @@
-# Integration Checklist (Manual)
+# Runtime Integration Checklist
 
-Use this checklist after starting backend (`:3001`) and frontend (`:3000`) to verify the Sprint 2 REST + WebSocket flow.
+Use this checklist after starting backend (`:3001`) and frontend (`:3000`) to verify the current REST + WebSocket runtime flow.
 
 ## Setup
 
-- [ ] Backend running: `cd backend && npm run dev`
-- [ ] Frontend running: `cd frontend && npm run dev`
+- [ ] Preferred startup path: `npm run bootstrap -- --mode local`
+- [ ] Or manual dev mode:
+  - Backend: `cd backend && npm run dev`
+  - Frontend: `cd frontend && npm run dev`
 - [ ] Frontend reachable at `http://localhost:3000`
 - [ ] Runtime config verified:
   - Backend `.env`: `RUNTIME_SOURCE=mock` (or `openclaw` real adapter path)
@@ -37,7 +39,7 @@ curl -s "http://localhost:3001/api/events?limit=5"
 ```
 
 - [ ] Endpoints respond with JSON and HTTP 200
-- [ ] `overview` counters are present (`totalAgents`, `totalTasks`, etc.)
+- [ ] `overview.counts` is present (`agents`, `tasks`, `events`, `activeAgents`, `openTasks`)
 - [ ] `curl -s http://localhost:3001/api/metrics` returns Prometheus-formatted text
 
 ### 3) Create data via API

@@ -14,7 +14,7 @@ ClawVille is an **internal dashboard prototype** for observing and operating mul
 - Local dev, Docker compose run path, and baseline acceptance smoke are in place
 
 ### Known Issues
-- Backend `npm run test` currently hangs when running the new auth/audit test suite (tracked in-session). Use `AUTH_MODE=off` (default) and run targeted tests if needed; fix pending.
+- Full backend `npm run test` still has hanging coverage in the broader API/auth/audit suite. CI is intentionally pinned to a stable scoped backend test set via `backend npm run test:ci` until the remaining hanging cases are fixed.
 - Release process docs/checklists exist (prototype and production-candidate gates)
 
 ## One-Command Bootstrap
@@ -96,6 +96,15 @@ RuntimeSource
   └─ OpenClawRuntimeSource (adapter skeleton; real transport pending)
 ```
 
+## Shared Contracts
+
+Canonical shared enums and core runtime types now live in [`shared/contracts/index.ts`](shared/contracts/index.ts).
+
+- Backend re-exports these contracts via `backend/src/models/types.ts`
+- Frontend consumes them through `frontend/types/models.ts` plus UI-derived extensions
+- Shared contracts currently cover the canonical Agent / Task / Event / Overview / RuntimeSnapshot shapes
+- UI-only fields, derived metrics, and page-specific presentation state remain frontend concerns
+
 ## Start Here (Docs Index)
 
 - Product overview: [`docs/product-overview.md`](docs/product-overview.md)
@@ -113,9 +122,9 @@ RuntimeSource
 | REST/WS contract | Implemented; local integration verified | **Stable** |
 | Runtime adapter contract | Abstraction + openclaw skeleton exists | **Partial** |
 | Real OpenClaw transport wiring | Not complete | **Missing** |
-| Persistence (DB/history durability) | Not implemented | **Missing** |
-| Auth/RBAC | Not implemented | **Missing** |
-| Audit trail/compliance logging | Basic logs only; no full audit pipeline | **Partial** |
+| Persistence (local durable baseline) | Implemented for local/file-backed runtime state; not production-grade DB durability | **Partial** |
+| Auth/RBAC | Header-based operator gate exists; production authn/authz stack not complete | **Partial** |
+| Audit trail/compliance logging | Operator audit endpoint + file-backed baseline exist; no full compliance pipeline yet | **Partial** |
 | Observability baseline (`health/ready/metrics`) | Implemented | **Stable** |
 | Release runbook/checklists | Implemented | **Stable** |
 | Resilience/degraded UX | Implemented baseline | **Partial** |

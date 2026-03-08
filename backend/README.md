@@ -50,6 +50,7 @@ Defaults:
 - `npm run build` — compile TypeScript
 - `npm start` — run compiled server
 - `npm run test` — run backend API tests (Node test runner via `node --import tsx --test`)
+- `npm run test:ci` — stable scoped backend suite used by CI while broader hanging tests are being fixed
 - `npm run check` — type-check + tests
 
 ## REST Endpoints
