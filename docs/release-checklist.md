@@ -1,4 +1,4 @@
-# Sprint 4 Release Checklist (Prototype → Production-Candidate Gate)
+# Release Checklist (Prototype -> Production-Candidate Gate)
 
 Use this checklist before creating a release tag.
 
@@ -22,6 +22,7 @@ Use this checklist before creating a release tag.
 
 - [ ] Backend check/build passes:
   - [ ] `cd backend && npm run check && npm run build`
+  - [ ] If you need the broader backend suite for debugging the hanging auth/audit coverage, run `cd backend && npm run check:full` separately and treat failures/hangs as a known gap until that suite is fixed
 - [ ] Frontend test/build passes:
   - [ ] `cd frontend && npm run test && npm run build`
 

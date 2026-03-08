@@ -10,10 +10,11 @@ Use this checklist after starting backend (`:3001`) and frontend (`:3000`) to ve
   - Frontend: `cd frontend && npm run dev`
 - [ ] Frontend reachable at `http://localhost:3000`
 - [ ] Runtime config verified:
-  - Backend `.env`: `RUNTIME_SOURCE=mock` (or `openclaw` real adapter path)
+  - Backend `.env`: `RUNTIME_SOURCE=mock` (or `openclaw` adapter-validation path)
   - If `RUNTIME_SOURCE=openclaw`, choose one runtime input:
     - Real upstream wiring: set `OPENCLAW_RUNTIME_ENDPOINT`, `OPENCLAW_RUNTIME_API_KEY`
     - Integration fixture wiring: set `OPENCLAW_RUNTIME_FIXTURE_PATH` (or `OPENCLAW_RUNTIME_FIXTURE_JSON`)
+  - Treat current `openclaw` mode as runtime-boundary verification unless the live transport wiring has been completed for your deployment
   - Keep `ALLOW_RUNTIME_FALLBACK=false` unless intentionally enabling temporary mock fallback
   - Frontend `.env.local`: `NEXT_PUBLIC_RUNTIME_MODE=local` for fallback-friendly integration checks (or `real` for strict runtime validation)
 

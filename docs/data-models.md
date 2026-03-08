@@ -7,6 +7,11 @@ Canonical code contract:
 - Backend re-export: `backend/src/models/types.ts`
 - Frontend consumption: `frontend/types/models.ts`
 
+Current adoption depth:
+- Backend API/runtime/store layers consume the shared contract via the backend model re-export
+- Frontend runtime parsing, schema helpers, and shared-contract tests already align to the same source
+- Remaining divergence is mostly in UI-derived state and analytics presentation, not in the core wire contract itself
+
 This document explains the intent of those shapes at a product/data-model level. When there is any conflict between this document and the checked-in shared contract code, treat `shared/contracts/index.ts` as the canonical source.
 
 UI-derived fields such as badges, severity display variants, room placement, mood, analytics aggregates, or drawer-specific summaries are presentation concerns layered on top of the shared contract.

@@ -55,7 +55,7 @@ async function buildServer() {
       runtimeDegraded: runtimeBinding.degraded
     },
     runtimeBinding.mode === 'openclaw'
-      ? 'Runtime source selected: openclaw (Round 2 adapter skeleton)'
+      ? 'Runtime source selected: openclaw (adapter-ready boundary; live transport pending)'
       : 'Runtime source selected: mock'
   );
 

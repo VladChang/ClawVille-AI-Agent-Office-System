@@ -1,6 +1,6 @@
-# Sprint 4 E2E Acceptance (Manual + Scriptable)
+# E2E Acceptance (Manual + Scriptable)
 
-This is a minimal acceptance flow for local verification of Sprint 4 quality.
+This is a minimal acceptance flow for local verification of the current dashboard baseline.
 
 ## Scope
 

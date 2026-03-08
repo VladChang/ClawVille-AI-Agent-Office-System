@@ -19,7 +19,8 @@ TypeScript + Fastify backend for ClawVille dashboard integration.
 - Lightweight metrics endpoint (`GET /api/metrics`, Prometheus text format)
 - Readiness endpoint (`GET /api/ready`) for strict runtime configuration checks
 - Env-based runtime source selection via `RUNTIME_SOURCE` (`mock` | `openclaw`)
-  - `openclaw` is a Round 2 adapter skeleton with injectable runtime client interfaces
+  - `openclaw` is an adapter-ready runtime boundary with injectable runtime client interfaces
+  - live upstream snapshot/list/control/subscription transport is still incomplete
   - strict degraded behavior by default when runtime client is not configured (`RUNTIME_NOT_CONFIGURED`)
   - optional non-production fallback: `ALLOW_RUNTIME_FALLBACK=true`
 
@@ -49,9 +50,10 @@ Defaults:
 - `npm run dev` — watch mode
 - `npm run build` — compile TypeScript
 - `npm start` — run compiled server
-- `npm run test` — run backend API tests (Node test runner via `node --import tsx --test`)
-- `npm run test:ci` — stable scoped backend suite used by CI while broader hanging tests are being fixed
-- `npm run check` — type-check + tests
+- `npm run test` — broader backend suite (currently includes hanging auth/audit coverage still being fixed)
+- `npm run test:ci` — stable scoped backend suite used by CI and release preflight
+- `npm run check` — type-check + stable scoped CI tests
+- `npm run check:full` — type-check + broader backend suite
 
 ## REST Endpoints
 

@@ -17,6 +17,7 @@ scripts/release/tagged-release.sh vX.Y.Z --dry-run
 
 Dry-run performs:
 - backend `npm run check && npm run build`
+- backend `npm run check` currently means `typecheck + test:ci`; use `npm run check:full` only when you intentionally want the broader backend suite that still has known hanging coverage
 - frontend `npm run test && npm run build`
 - acceptance smoke with `/api/ready` + `/api/metrics` checks enabled (`scripts/release/smoke-check.sh`)
 

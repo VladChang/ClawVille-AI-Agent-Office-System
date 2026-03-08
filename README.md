@@ -8,9 +8,9 @@ ClawVille is an **internal dashboard prototype** for observing and operating mul
 - Core UI routes are implemented: `/`, `/agents`, `/tasks`, `/events`, `/office`, `/analytics`
 - Backend REST + WebSocket contracts are implemented and stable for local integration
 - Operator actions available: pause/resume agent, retry task, task status update
-- Runtime abstraction exists (`RuntimeSource`) with `mock` and `openclaw` bindings
-- Optional durable local persistence baseline for runtime snapshot + transition history (`RUNTIME_PERSISTENCE_ENABLED`)
-- Header-based auth/RBAC gate (optional) + operator audit trail endpoint baseline (`AUTH_MODE=header`, `/api/audit`)
+- Runtime abstraction boundary exists (`RuntimeSource`) with `mock` and `openclaw` adapter scaffolding
+- Optional local persistence baseline exists for runtime snapshot + transition history (`RUNTIME_PERSISTENCE_ENABLED`)
+- Optional internal-use auth/RBAC header gate + operator audit trail endpoint baseline exist (`AUTH_MODE=header`, `/api/audit`)
 - Local dev, Docker compose run path, and baseline acceptance smoke are in place
 
 ### Known Issues
@@ -44,7 +44,7 @@ npm run stop
 ```
 
 ### In Progress
-- Real OpenClaw transport/client implementation behind `OpenClawRuntimeSource`
+- Real OpenClaw transport/data-plane implementation behind `OpenClawRuntimeSource`
 - Production hardening: auth/RBAC, persistence, audit trail, stronger alerting/SLO posture
 
 ### Next
@@ -70,12 +70,17 @@ Legacy compat: `NEXT_PUBLIC_USE_MOCK_API=true` still supported.
 
 ### Backend (`RUNTIME_SOURCE`)
 - `mock`: in-memory runtime source
-- `openclaw`: adapter skeleton mode; strict degraded signaling when runtime config is missing/unready
+- `openclaw`: adapter-ready integration boundary only; strict degraded signaling when runtime config is missing/unready, but full live transport wiring is still incomplete
 
 Key env for openclaw mode:
 - `OPENCLAW_RUNTIME_ENDPOINT`
 - `OPENCLAW_RUNTIME_API_KEY`
 - `ALLOW_RUNTIME_FALLBACK=false` (recommended/expected for strict posture)
+
+Current `openclaw` maturity:
+- Runtime boundary, env selection, degraded readiness, and fixture-backed tests exist
+- Full live snapshot/list/control/subscription transport is still pending
+- Treat current `openclaw` mode as adapter scaffolding, not full production runtime integration
 
 ## Architecture Summary
 
@@ -93,7 +98,7 @@ Backend (Fastify API + /ws)
         ▼
 RuntimeSource
   ├─ MockRuntimeSource (in-memory)
-  └─ OpenClawRuntimeSource (adapter skeleton; real transport pending)
+  └─ OpenClawRuntimeSource (adapter-ready boundary; live transport pending)
 ```
 
 ## Shared Contracts
@@ -101,11 +106,21 @@ RuntimeSource
 Canonical shared enums and core runtime types now live in [`shared/contracts/index.ts`](shared/contracts/index.ts).
 
 - Backend re-exports these contracts via `backend/src/models/types.ts`
-- Frontend consumes them through `frontend/types/models.ts` plus UI-derived extensions
+- Frontend consumes them through `frontend/types/models.ts`, `frontend/lib/schema.ts`, `frontend/lib/runtimeContract.ts`, and shared-contract tests
 - Shared contracts currently cover the canonical Agent / Task / Event / Overview / RuntimeSnapshot shapes
-- UI-only fields, derived metrics, and page-specific presentation state remain frontend concerns
+- Backend runtime/store/api logic now builds on those canonical shapes through the re-export layer
+- UI-only fields, derived metrics, room placement, and page-specific presentation state remain frontend concerns
+- Remaining migration work is mostly about tightening runtime validation and reducing duplicate interpretation logic, not re-inventing the base shapes
 
 ## Start Here (Docs Index)
+
+Suggested reading order for contributors:
+1. `README.md`
+2. [`docs/data-models.md`](docs/data-models.md)
+3. [`docs/integration-checklist.md`](docs/integration-checklist.md)
+4. [`docs/e2e-acceptance.md`](docs/e2e-acceptance.md)
+5. [`docs/release-checklist.md`](docs/release-checklist.md)
+6. [`docs/roadmap.md`](docs/roadmap.md)
 
 - Product overview: [`docs/product-overview.md`](docs/product-overview.md)
 - Data models: [`docs/data-models.md`](docs/data-models.md)
@@ -116,18 +131,26 @@ Canonical shared enums and core runtime types now live in [`shared/contracts/ind
 
 ## Prototype vs Production Boundary
 
+Maturity labels used below:
+- `Stable`: implemented and expected to work for normal internal usage
+- `Prototype baseline`: core implementation exists, but hardening depth is limited
+- `Internal-only`: usable for local/internal workflows, but not production-grade
+- `Production hardening pending`: significant reliability/security/operational work remains
+- `Missing`: boundary acknowledged, implementation still incomplete
+- `Demo-only`: intentionally optimized for presentation, not operational rigor
+
 | Area | Current state | Boundary |
 |---|---|---|
 | UI routes & operator flows | Implemented and usable | **Stable** |
 | REST/WS contract | Implemented; local integration verified | **Stable** |
-| Runtime adapter contract | Abstraction + openclaw skeleton exists | **Partial** |
+| Runtime adapter contract | Abstraction exists; `openclaw` currently provides adapter scaffolding plus degraded-mode signaling, not a full live transport | **Prototype baseline** |
 | Real OpenClaw transport wiring | Not complete | **Missing** |
-| Persistence (local durable baseline) | Implemented for local/file-backed runtime state; not production-grade DB durability | **Partial** |
-| Auth/RBAC | Header-based operator gate exists; production authn/authz stack not complete | **Partial** |
-| Audit trail/compliance logging | Operator audit endpoint + file-backed baseline exist; no full compliance pipeline yet | **Partial** |
+| Persistence (local durable baseline) | File-backed runtime state exists for local/internal durability; database-grade durability and operational safeguards are still absent | **Internal-only** |
+| Auth/RBAC | Header-based operator gate exists for internal control flows; real identity/session/authz integration is still incomplete | **Internal-only** |
+| Audit trail/compliance logging | Operator audit endpoint + file-backed baseline exist; retention/compliance/export pipeline still needs hardening | **Internal-only** |
 | Observability baseline (`health/ready/metrics`) | Implemented | **Stable** |
-| Release runbook/checklists | Implemented | **Stable** |
-| Resilience/degraded UX | Implemented baseline | **Partial** |
+| Release runbook/checklists | Implemented for internal release discipline | **Prototype baseline** |
+| Resilience/degraded UX | Fallback/degraded UX exists, but production incident-handling depth is still limited | **Production hardening pending** |
 | Demo friendliness (office view/humanized UI) | Strong | **Demo-only** |
 
 ## Quick Local Run
