@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { MockRuntimeSource } from '../src/runtime/mockRuntimeSource';
 import { MockStore } from '../src/store/mockStore';
 import { createRealtimeSnapshotPayload, createRealtimeStateChangedPayload } from '../src/realtime/realtimeContract';
+import { resolveRealtimeSocket } from '../src/realtime/websocket';
 
 test('realtime websocket payload builders keep the expected envelope shape', async () => {
   const runtimeSource = new MockRuntimeSource(new MockStore());
@@ -19,4 +20,15 @@ test('realtime websocket payload builders keep the expected envelope shape', asy
   assert.equal(changedPayload.type, 'state_changed');
   assert.equal(changedPayload.data.snapshot.overview.counts.events, snapshot.events.length);
   assert.equal(changedPayload.data.event?.id, event?.id);
+});
+
+test('realtime websocket handler accepts both fastify connection shapes', () => {
+  const socket = {
+    readyState: 1,
+    send() {},
+    on() {}
+  };
+
+  assert.equal(resolveRealtimeSocket(socket), socket);
+  assert.equal(resolveRealtimeSocket({ socket }), socket);
 });

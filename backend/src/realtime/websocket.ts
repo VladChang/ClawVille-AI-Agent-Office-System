@@ -5,6 +5,14 @@ import { RuntimeSnapshot } from '../runtime/runtimeSource';
 import { RuntimeSourceUnavailableError } from '../runtime/openclawRuntimeSource';
 import { createRealtimeSnapshotPayload, createRealtimeStateChangedPayload, RealtimePayload } from './realtimeContract';
 
+interface RealtimeWebSocketLike {
+  readyState: number;
+  send(payload: string): void;
+  on(event: 'close', listener: () => void): void;
+}
+
+type RealtimeConnectionLike = RealtimeWebSocketLike | { socket: RealtimeWebSocketLike };
+
 function emptySnapshot(message: string): RuntimeSnapshot {
   const now = new Date().toISOString();
   return {
@@ -50,6 +58,10 @@ function stopSimulationLoop(): void {
   simulationInterval = null;
 }
 
+export function resolveRealtimeSocket(connection: RealtimeConnectionLike): RealtimeWebSocketLike {
+  return 'socket' in connection ? connection.socket : connection;
+}
+
 export async function registerRealtime(app: FastifyInstance): Promise<void> {
   await app.register(websocketPlugin);
   ensureSimulationLoop();
@@ -60,9 +72,11 @@ export async function registerRealtime(app: FastifyInstance): Promise<void> {
   });
 
   app.get('/ws', { websocket: true }, (connection) => {
+    const socket = resolveRealtimeSocket(connection as RealtimeConnectionLike);
+
     const send = (message: RealtimePayload) => {
-      if (connection.socket.readyState === 1) {
-        connection.socket.send(JSON.stringify(message));
+      if (socket.readyState === 1) {
+        socket.send(JSON.stringify(message));
       }
     };
 
@@ -85,7 +99,7 @@ export async function registerRealtime(app: FastifyInstance): Promise<void> {
       send(createRealtimeStateChangedPayload(snapshot, event));
     });
 
-    connection.socket.on('close', () => {
+    socket.on('close', () => {
       unsubscribe();
     });
   });
