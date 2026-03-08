@@ -377,7 +377,8 @@ export class HttpOpenClawRuntimeTransport implements OpenClawRuntimeTransport {
       timedOut = true;
       controller.abort();
     }, this.requestTimeoutMs);
-    timeout.unref?.();
+    // Keep request timeout timers referenced so stalled/mock fetch implementations
+    // cannot let the process exit before the abort fires.
 
     try {
       const response = await fetch(this.buildUrl(pathname), {
