@@ -10,7 +10,7 @@
     "start": "node dist/backend/src/server.js",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/**/*.test.ts",
-    "test:ci": "node --import tsx --test tests/api-behavior-unchanged.test.ts tests/persistence.test.ts tests/runtime-source.contract.test.ts tests/runtime-source-selection.test.ts tests/openclaw-runtime.integration.test.ts tests/shared-contracts.test.ts",
+    "test:ci": "node --import tsx --test tests/api-behavior-unchanged.test.ts tests/api-validation.test.ts tests/persistence.test.ts tests/runtime-source.contract.test.ts tests/runtime-source-selection.test.ts tests/openclaw-runtime.integration.test.ts tests/shared-contracts.test.ts",
     "check": "npm run typecheck && npm run test:ci",
     "check:full": "npm run typecheck && npm run test"
   },

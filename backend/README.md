@@ -18,6 +18,7 @@ TypeScript + Fastify backend for ClawVille dashboard integration.
 - Structured JSON runtime logs with request IDs (`x-request-id`)
 - Lightweight metrics endpoint (`GET /api/metrics`, Prometheus text format)
 - Readiness endpoint (`GET /api/ready`) for strict runtime configuration checks
+- Request validation schemas with consistent `VALIDATION_ERROR` envelopes for mutation/query failures
 - Env-based runtime source selection via `RUNTIME_SOURCE` (`mock` | `openclaw`)
   - `openclaw` is an adapter-ready runtime boundary with injectable runtime client interfaces
   - live upstream snapshot/list/control/subscription transport is still incomplete

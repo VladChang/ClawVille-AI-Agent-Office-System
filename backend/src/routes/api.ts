@@ -1,4 +1,4 @@
-import { FastifyInstance, FastifyReply } from 'fastify';
+import { FastifyError, FastifyInstance, FastifyReply } from 'fastify';
 import { runtimeBinding, runtimeSource } from '../runtime';
 import { AGENT_STATUSES, AgentStatus, TASK_PRIORITIES, TASK_STATUSES, TaskStatus } from '../models/types';
 import { RuntimeSourceUnavailableError } from '../runtime/openclawRuntimeSource';
@@ -14,6 +14,18 @@ function fail(reply: FastifyReply, statusCode: number, message: string, code: st
   return reply.code(statusCode).send({ success: false, error: { code, message } });
 }
 
+type ValidationIssue = {
+  instancePath?: string;
+  keyword?: string;
+  message?: string;
+  params?: Record<string, unknown>;
+};
+
+type RouteValidationError = FastifyError & {
+  validation?: ValidationIssue[];
+  validationContext?: string;
+};
+
 function runtimeFailure(reply: FastifyReply, error: RuntimeSourceUnavailableError) {
   return fail(reply, 503, error.message, error.code);
 }
@@ -22,12 +34,65 @@ function isRuntimeUnavailable(error: unknown): error is RuntimeSourceUnavailable
   return error instanceof RuntimeSourceUnavailableError;
 }
 
+function isValidationError(error: unknown): error is RouteValidationError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    Array.isArray((error as RouteValidationError).validation)
+  );
+}
+
+function formatValidationField(issue: ValidationIssue, context?: string) {
+  const scopedContext = context && context.length > 0 ? context : 'request';
+  const instancePath = issue.instancePath?.replace(/^\/+/, '').replace(/\//g, '.');
+
+  if (instancePath && instancePath.length > 0) {
+    return `${scopedContext}.${instancePath}`;
+  }
+
+  const missingProperty = issue.params?.missingProperty;
+  if (typeof missingProperty === 'string' && missingProperty.length > 0) {
+    return `${scopedContext}.${missingProperty}`;
+  }
+
+  const additionalProperty = issue.params?.additionalProperty;
+  if (typeof additionalProperty === 'string' && additionalProperty.length > 0) {
+    return `${scopedContext}.${additionalProperty}`;
+  }
+
+  return scopedContext;
+}
+
+function validationFailure(reply: FastifyReply, error: RouteValidationError) {
+  const details =
+    error.validation?.map((issue) => ({
+      field: formatValidationField(issue, error.validationContext),
+      keyword: issue.keyword ?? 'validation',
+      message: issue.message ?? 'Invalid request value'
+    })) ?? [];
+
+  return reply.code(400).send({
+    success: false,
+    error: {
+      code: 'VALIDATION_ERROR',
+      message: 'Request validation failed',
+      details
+    }
+  });
+}
+
+const nonBlankStringSchema = {
+  type: 'string',
+  minLength: 1,
+  pattern: '.*\\S.*'
+} as const;
+
 const idParamsSchema = {
   type: 'object',
   required: ['id'],
   additionalProperties: false,
   properties: {
-    id: { type: 'string', minLength: 1 }
+    id: nonBlankStringSchema
   }
 } as const;
 
@@ -36,8 +101,8 @@ const createAgentBodySchema = {
   required: ['name', 'role'],
   additionalProperties: false,
   properties: {
-    name: { type: 'string', minLength: 1 },
-    role: { type: 'string', minLength: 1 },
+    name: nonBlankStringSchema,
+    role: nonBlankStringSchema,
     status: { type: 'string', enum: [...AGENT_STATUSES] }
   }
 } as const;
@@ -47,9 +112,9 @@ const createTaskBodySchema = {
   required: ['title', 'priority'],
   additionalProperties: false,
   properties: {
-    title: { type: 'string', minLength: 1 },
+    title: nonBlankStringSchema,
     description: { type: 'string' },
-    assigneeAgentId: { type: 'string', minLength: 1 },
+    assigneeAgentId: nonBlankStringSchema,
     status: { type: 'string', enum: [...TASK_STATUSES] },
     priority: { type: 'string', enum: [...TASK_PRIORITIES] }
   }
@@ -81,6 +146,21 @@ const auditQuerySchema = {
 } as const;
 
 export async function apiRoutes(app: FastifyInstance): Promise<void> {
+  app.setErrorHandler((error, req, reply) => {
+    if (isValidationError(error)) {
+      return validationFailure(reply, error);
+    }
+
+    req.log.error({ err: error }, 'Unhandled API route error');
+    return reply.code(500).send({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Internal server error'
+      }
+    });
+  });
+
   app.get('/health', async (_, reply) => ok(reply, { ok: true, ts: new Date().toISOString() }));
 
   app.get('/ready', async (_, reply) => {
