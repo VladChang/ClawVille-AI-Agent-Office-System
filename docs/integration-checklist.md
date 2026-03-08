@@ -5,6 +5,33 @@ Use this checklist after starting backend (`:3001`) and frontend (`:3000`) to ve
 > Scope note: this checklist validates local/runtime-boundary integration for the dashboard, API, and websocket flow.
 > It does not by itself guarantee full live OpenClaw transport readiness unless the deployment under test is wired to a real upstream runtime and that live transport path is part of the run.
 
+## Validation Paths
+
+Choose one path before running the checks below.
+
+### Path A: Local / fixture validation
+
+- Use this when validating the dashboard, API contract, websocket contract, or fixture-backed OpenClaw mapping.
+- Minimal backend env:
+  - `RUNTIME_SOURCE=mock`
+  - or `RUNTIME_SOURCE=openclaw` plus `OPENCLAW_RUNTIME_FIXTURE_PATH` / `OPENCLAW_RUNTIME_FIXTURE_JSON`
+- Recommended frontend env:
+  - `NEXT_PUBLIC_RUNTIME_MODE=local`
+- Passing this path confirms local/runtime-boundary behavior only.
+- Fixture validation passing does not mean real upstream OpenClaw validation has passed.
+
+### Path B: Real upstream validation
+
+- Use this when validating the current prototype HTTP transport against a real OpenClaw-compatible upstream.
+- Minimal backend env:
+  - `RUNTIME_SOURCE=openclaw`
+  - `OPENCLAW_RUNTIME_ENDPOINT=<UPSTREAM_URL>`
+  - `OPENCLAW_RUNTIME_API_KEY=<UPSTREAM_API_KEY>`
+  - `ALLOW_RUNTIME_FALLBACK=false`
+- Recommended frontend env:
+  - `NEXT_PUBLIC_RUNTIME_MODE=real`
+- Passing this path confirms the current deployment can reach and operate against the configured upstream runtime, but it still does not by itself imply production-grade transport hardening.
+
 ## Setup
 
 - [ ] Preferred startup path: `npm run bootstrap -- --mode local`
@@ -13,12 +40,13 @@ Use this checklist after starting backend (`:3001`) and frontend (`:3000`) to ve
   - Frontend: `cd frontend && npm run dev`
 - [ ] Frontend reachable at `http://localhost:3000`
 - [ ] Runtime config verified:
-  - Backend `.env`: `RUNTIME_SOURCE=mock` (or `openclaw` HTTP transport path)
+  - Backend `.env`: `RUNTIME_SOURCE=mock` or `RUNTIME_SOURCE=openclaw`
   - If `RUNTIME_SOURCE=openclaw`, choose one runtime input:
     - Real upstream wiring: set `OPENCLAW_RUNTIME_ENDPOINT`, `OPENCLAW_RUNTIME_API_KEY`
     - Integration fixture wiring: set `OPENCLAW_RUNTIME_FIXTURE_PATH` (or `OPENCLAW_RUNTIME_FIXTURE_JSON`)
   - Optional HTTP transport tuning: `OPENCLAW_RUNTIME_POLL_MS`, `OPENCLAW_RUNTIME_POLL_MAX_BACKOFF_MS`, `OPENCLAW_RUNTIME_REQUEST_TIMEOUT_MS`, `OPENCLAW_RUNTIME_AUTH_HEADER`, `OPENCLAW_RUNTIME_AUTH_SCHEME`, `OPENCLAW_RUNTIME_SNAPSHOT_PATH`, `OPENCLAW_RUNTIME_AGENTS_PATH`, `OPENCLAW_RUNTIME_TASKS_PATH`, `OPENCLAW_RUNTIME_EVENTS_PATH`
   - Treat current `openclaw` mode as a prototype transport baseline: HTTP snapshot/list/control and polling subscription exist, and timeout/backoff controls are available, but upstream-specific production hardening may still require tuning
+  - Fixture mode passing is not evidence that real upstream mode is passing
   - Keep `ALLOW_RUNTIME_FALLBACK=false` unless intentionally enabling temporary mock fallback
   - Frontend `.env.local`: `NEXT_PUBLIC_RUNTIME_MODE=local` for fallback-friendly integration checks (or `real` for strict runtime validation)
 
@@ -89,7 +117,7 @@ npx wscat -c ws://localhost:3001/ws
 ```
 
 - [ ] First message is `{"type":"snapshot", ...}`
-- [ ] Follow-up messages arrive about every 5 seconds as `{"type":"state_changed", ...}`
+- [ ] Follow-up messages arrive periodically as `{"type":"state_changed", ...}` according to the current polling/runtime configuration
 - [ ] WS connection closes cleanly when client exits
 
 ## Frontend sanity checks
