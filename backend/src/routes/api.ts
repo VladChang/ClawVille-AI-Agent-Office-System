@@ -1,4 +1,4 @@
-import { FastifyError, FastifyInstance, FastifyReply } from 'fastify';
+import { FastifyError, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { runtimeBinding, runtimeSource } from '../runtime';
 import { AGENT_STATUSES, AgentStatus, TASK_PRIORITIES, TASK_STATUSES, TaskStatus } from '../models/types';
 import { RuntimeSourceUnavailableError } from '../runtime/openclawRuntimeSource';
@@ -79,6 +79,12 @@ function validationFailure(reply: FastifyReply, error: RouteValidationError) {
       details
     }
   });
+}
+
+async function mutationAccessPreHandler(req: FastifyRequest, reply: FastifyReply) {
+  if (!requireMutationAccess(req, reply)) {
+    return reply;
+  }
 }
 
 const nonBlankStringSchema = {
@@ -211,9 +217,7 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     '/agents',
     {
       schema: { body: createAgentBodySchema },
-      preHandler: (req, reply) => {
-        if (!requireMutationAccess(req, reply)) return;
-      }
+      preHandler: mutationAccessPreHandler
     },
     async (req, reply) => {
     const actor = getActor(req);
@@ -240,9 +244,7 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     '/agents/:id/pause',
     {
       schema: { params: idParamsSchema },
-      preHandler: (req, reply) => {
-        if (!requireMutationAccess(req, reply)) return;
-      }
+      preHandler: mutationAccessPreHandler
     },
     async (req, reply) => {
     const actor = getActor(req);
@@ -268,9 +270,7 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     '/agents/:id/resume',
     {
       schema: { params: idParamsSchema },
-      preHandler: (req, reply) => {
-        if (!requireMutationAccess(req, reply)) return;
-      }
+      preHandler: mutationAccessPreHandler
     },
     async (req, reply) => {
     const actor = getActor(req);
@@ -313,9 +313,7 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     '/tasks',
     {
       schema: { body: createTaskBodySchema },
-      preHandler: (req, reply) => {
-        if (!requireMutationAccess(req, reply)) return;
-      }
+      preHandler: mutationAccessPreHandler
     },
     async (req, reply) => {
     const actor = getActor(req);
@@ -342,9 +340,7 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     '/tasks/:id/status',
     {
       schema: { params: idParamsSchema, body: updateTaskStatusBodySchema },
-      preHandler: (req, reply) => {
-        if (!requireMutationAccess(req, reply)) return;
-      }
+      preHandler: mutationAccessPreHandler
     },
     async (req, reply) => {
     const actor = getActor(req);
@@ -369,9 +365,7 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     '/tasks/:id/retry',
     {
       schema: { params: idParamsSchema },
-      preHandler: (req, reply) => {
-        if (!requireMutationAccess(req, reply)) return;
-      }
+      preHandler: mutationAccessPreHandler
     },
     async (req, reply) => {
     const actor = getActor(req);
