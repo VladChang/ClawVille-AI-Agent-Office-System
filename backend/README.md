@@ -22,7 +22,7 @@ TypeScript + Fastify backend for ClawVille dashboard integration.
 - Env-based runtime source selection via `RUNTIME_SOURCE` (`mock` | `openclaw`)
   - `openclaw` supports fixture transport and HTTP/JSON runtime transport behind the same runtime boundary
   - snapshot/list/control are backed by real async transport calls when `OPENCLAW_RUNTIME_ENDPOINT` + `OPENCLAW_RUNTIME_API_KEY` are configured
-  - realtime subscription uses polling-based snapshot change detection (`OPENCLAW_RUNTIME_POLL_MS`) for the HTTP transport baseline
+  - realtime subscription uses polling-based snapshot change detection with timeout/backoff controls (`OPENCLAW_RUNTIME_POLL_MS`, `OPENCLAW_RUNTIME_POLL_MAX_BACKOFF_MS`, `OPENCLAW_RUNTIME_REQUEST_TIMEOUT_MS`)
   - strict degraded behavior by default when runtime client is not configured (`RUNTIME_NOT_CONFIGURED`)
   - optional non-production fallback: `ALLOW_RUNTIME_FALLBACK=true`
 

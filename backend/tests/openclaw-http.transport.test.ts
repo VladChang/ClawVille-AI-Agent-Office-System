@@ -11,6 +11,10 @@ type RuntimeState = {
   events: Array<Record<string, unknown>>;
 };
 
+function cloneState<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
 function createRuntimeState(): RuntimeState {
   return {
     agents: [
@@ -50,6 +54,17 @@ function jsonResponse(payload: unknown, status = 200): Response {
     status,
     headers: { 'content-type': 'application/json' }
   });
+}
+
+async function waitFor(assertion: () => boolean, timeoutMs = 400, intervalMs = 10): Promise<void> {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < timeoutMs) {
+    if (assertion()) return;
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+
+  throw new Error(`Condition was not met within ${timeoutMs}ms.`);
 }
 
 test('http openclaw transport supports snapshot, control actions, and polling subscriptions', async () => {
@@ -180,6 +195,137 @@ test('http openclaw transport supports snapshot, control actions, and polling su
     unsubscribe();
     assert.equal(subscriptionSeen, true);
   } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('http openclaw transport times out stalled upstream requests', async () => {
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = (async (_input, init) => {
+    return await new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener(
+        'abort',
+        () => {
+          reject(new DOMException('The operation was aborted.', 'AbortError'));
+        },
+        { once: true }
+      );
+    });
+  }) as typeof fetch;
+
+  const transport = new HttpOpenClawRuntimeTransport({
+    endpoint: 'http://runtime.local',
+    apiKey: 'test-openclaw-key',
+    requestTimeoutMs: 30
+  });
+
+  try {
+    await assert.rejects(
+      async () => {
+        await transport.fetchSnapshot();
+      },
+      /timed out after 30ms/
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('http openclaw transport subscription backs off after failures and recovers on the next healthy snapshot', async () => {
+  const state = createRuntimeState();
+  const originalFetch = globalThis.fetch;
+  const originalWarn = console.warn;
+  const snapshotCallTimes: number[] = [];
+  const warningMessages: string[] = [];
+  let snapshotCallCount = 0;
+  let subscriptionSeen = false;
+
+  console.warn = ((message?: unknown, ...rest: unknown[]) => {
+    warningMessages.push([message, ...rest].map((value) => String(value)).join(' '));
+  }) as typeof console.warn;
+
+  globalThis.fetch = (async (input, init) => {
+    const url = new URL(String(input));
+    const authHeader = init?.headers ? new Headers(init.headers).get('authorization') : null;
+    const method = init?.method ?? 'GET';
+
+    if (authHeader !== 'Bearer test-openclaw-key') {
+      return jsonResponse({ error: { message: 'Unauthorized runtime request' } }, 401);
+    }
+
+    if (method === 'GET' && url.pathname === '/snapshot') {
+      snapshotCallCount += 1;
+      snapshotCallTimes.push(Date.now());
+
+      if (snapshotCallCount === 2 || snapshotCallCount === 3) {
+        return jsonResponse({ error: { message: 'Runtime temporarily unavailable' } }, 503);
+      }
+
+      if (snapshotCallCount >= 4) {
+        state.agents[0] = {
+          ...state.agents[0],
+          status: 'offline',
+          updatedAt: '2026-03-09T00:01:00.000Z'
+        };
+      }
+
+      return jsonResponse({
+        snapshot: {
+          agents: cloneState(state.agents),
+          tasks: cloneState(state.tasks),
+          events: cloneState(state.events)
+        }
+      });
+    }
+
+    if (method === 'GET' && url.pathname === '/agents') {
+      return jsonResponse({ success: true, data: cloneState(state.agents) });
+    }
+
+    if (method === 'GET' && url.pathname === '/tasks') {
+      return jsonResponse({ success: true, data: cloneState(state.tasks) });
+    }
+
+    if (method === 'GET' && url.pathname === '/events') {
+      return jsonResponse({ success: true, data: cloneState(state.events) });
+    }
+
+    return jsonResponse({ error: { message: `Unhandled route ${method} ${url.pathname}` } }, 404);
+  }) as typeof fetch;
+
+  const transport = new HttpOpenClawRuntimeTransport({
+    endpoint: 'http://runtime.local',
+    apiKey: 'test-openclaw-key',
+    pollMs: 20,
+    pollMaxBackoffMs: 80,
+    requestTimeoutMs: 100
+  });
+
+  try {
+    const unsubscribe = transport.subscribe(({ snapshot }) => {
+      subscriptionSeen = Array.isArray(snapshot?.agents)
+        ? snapshot.agents.some((agent) => {
+            const record = agent as Record<string, unknown>;
+            return record.id === 'http-a-1' && record.status === 'offline';
+          })
+        : false;
+    });
+
+    try {
+      await waitFor(() => subscriptionSeen, 500, 10);
+    } finally {
+      unsubscribe();
+    }
+
+    assert.equal(snapshotCallCount >= 4, true);
+    assert.equal(warningMessages.some((message) => message.includes('retrying in 20ms')), true);
+    assert.equal(warningMessages.some((message) => message.includes('retrying in 40ms')), true);
+    assert.equal(snapshotCallTimes.length >= 4, true);
+    assert.equal(snapshotCallTimes[2]! - snapshotCallTimes[1]! >= 18, true);
+    assert.equal(snapshotCallTimes[3]! - snapshotCallTimes[2]! >= 35, true);
+  } finally {
+    console.warn = originalWarn;
     globalThis.fetch = originalFetch;
   }
 });

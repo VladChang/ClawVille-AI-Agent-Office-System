@@ -50,7 +50,7 @@ npm run stop
 
 ### Next
 - Validate the HTTP transport against real upstream OpenClaw deployments
-- Add stronger outage/reconnect tests for non-fixture `openclaw` mode
+- Add richer upstream outage/reconnect coverage against real non-fixture `openclaw` deployments
 - Complete production gate items and promote from prototype/internal use to production-candidate
 
 ## Scope Classification (Explicit)
@@ -77,6 +77,8 @@ Key env for openclaw mode:
 - `OPENCLAW_RUNTIME_ENDPOINT`
 - `OPENCLAW_RUNTIME_API_KEY`
 - `OPENCLAW_RUNTIME_POLL_MS`
+- `OPENCLAW_RUNTIME_POLL_MAX_BACKOFF_MS`
+- `OPENCLAW_RUNTIME_REQUEST_TIMEOUT_MS`
 - `OPENCLAW_RUNTIME_AUTH_HEADER`
 - `OPENCLAW_RUNTIME_AUTH_SCHEME`
 - `OPENCLAW_RUNTIME_SNAPSHOT_PATH`
@@ -87,7 +89,7 @@ Key env for openclaw mode:
 
 Current `openclaw` maturity:
 - Runtime boundary, env selection, degraded readiness, and fixture-backed tests exist
-- HTTP transport covers snapshot/list/control against JSON endpoints, with polling-based snapshot subscription for realtime updates
+- HTTP transport covers snapshot/list/control against JSON endpoints, with polling-based snapshot subscription, request timeout, and backoff-based recovery for realtime updates
 - Production hardening is still pending: upstream-specific endpoint conventions, richer auth negotiation, and push/event-stream transport
 
 ## Architecture Summary

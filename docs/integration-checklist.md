@@ -14,8 +14,8 @@ Use this checklist after starting backend (`:3001`) and frontend (`:3000`) to ve
   - If `RUNTIME_SOURCE=openclaw`, choose one runtime input:
     - Real upstream wiring: set `OPENCLAW_RUNTIME_ENDPOINT`, `OPENCLAW_RUNTIME_API_KEY`
     - Integration fixture wiring: set `OPENCLAW_RUNTIME_FIXTURE_PATH` (or `OPENCLAW_RUNTIME_FIXTURE_JSON`)
-  - Optional HTTP transport tuning: `OPENCLAW_RUNTIME_POLL_MS`, `OPENCLAW_RUNTIME_AUTH_HEADER`, `OPENCLAW_RUNTIME_AUTH_SCHEME`, `OPENCLAW_RUNTIME_SNAPSHOT_PATH`, `OPENCLAW_RUNTIME_AGENTS_PATH`, `OPENCLAW_RUNTIME_TASKS_PATH`, `OPENCLAW_RUNTIME_EVENTS_PATH`
-  - Treat current `openclaw` mode as a prototype transport baseline: HTTP snapshot/list/control and polling subscription exist, but upstream-specific production hardening may still require tuning
+  - Optional HTTP transport tuning: `OPENCLAW_RUNTIME_POLL_MS`, `OPENCLAW_RUNTIME_POLL_MAX_BACKOFF_MS`, `OPENCLAW_RUNTIME_REQUEST_TIMEOUT_MS`, `OPENCLAW_RUNTIME_AUTH_HEADER`, `OPENCLAW_RUNTIME_AUTH_SCHEME`, `OPENCLAW_RUNTIME_SNAPSHOT_PATH`, `OPENCLAW_RUNTIME_AGENTS_PATH`, `OPENCLAW_RUNTIME_TASKS_PATH`, `OPENCLAW_RUNTIME_EVENTS_PATH`
+  - Treat current `openclaw` mode as a prototype transport baseline: HTTP snapshot/list/control and polling subscription exist, and timeout/backoff controls are available, but upstream-specific production hardening may still require tuning
   - Keep `ALLOW_RUNTIME_FALLBACK=false` unless intentionally enabling temporary mock fallback
   - Frontend `.env.local`: `NEXT_PUBLIC_RUNTIME_MODE=local` for fallback-friendly integration checks (or `real` for strict runtime validation)
 

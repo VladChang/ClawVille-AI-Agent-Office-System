@@ -255,6 +255,8 @@ interface HttpOpenClawRuntimeTransportOptions {
   tasksPath?: string;
   eventsPath?: string;
   pollMs?: number;
+  pollMaxBackoffMs?: number;
+  requestTimeoutMs?: number;
 }
 
 function parsePositiveInteger(value: string | undefined, fallback: number): number {
@@ -305,6 +307,8 @@ export class HttpOpenClawRuntimeTransport implements OpenClawRuntimeTransport {
   private readonly tasksPath: string;
   private readonly eventsPath: string;
   private readonly pollMs: number;
+  private readonly pollMaxBackoffMs: number;
+  private readonly requestTimeoutMs: number;
 
   constructor(options: HttpOpenClawRuntimeTransportOptions) {
     this.endpoint = options.endpoint;
@@ -316,6 +320,8 @@ export class HttpOpenClawRuntimeTransport implements OpenClawRuntimeTransport {
     this.tasksPath = options.tasksPath ?? '/tasks';
     this.eventsPath = options.eventsPath ?? '/events';
     this.pollMs = options.pollMs ?? 5000;
+    this.pollMaxBackoffMs = Math.max(options.pollMaxBackoffMs ?? 30000, this.pollMs);
+    this.requestTimeoutMs = options.requestTimeoutMs ?? 5000;
   }
 
   private buildUrl(pathname: string, query?: Record<string, string | number | undefined>): URL {
@@ -353,33 +359,64 @@ export class HttpOpenClawRuntimeTransport implements OpenClawRuntimeTransport {
     init: Omit<RequestInit, 'headers' | 'body'> & { body?: unknown } = {},
     options: { allowNotFound?: boolean } = {}
   ): Promise<unknown | null> {
-    const { body, ...requestInit } = init;
-    const response = await fetch(this.buildUrl(pathname), {
-      ...requestInit,
-      headers: this.headers(body),
-      body: body === undefined ? undefined : JSON.stringify(body)
-    });
+    const { body, signal, ...requestInit } = init;
+    const controller = new AbortController();
+    let timedOut = false;
 
-    if (options.allowNotFound && response.status === 404) {
-      return null;
+    const abortFromUpstreamSignal = () => {
+      controller.abort(signal?.reason);
+    };
+
+    if (signal?.aborted) {
+      abortFromUpstreamSignal();
+    } else {
+      signal?.addEventListener('abort', abortFromUpstreamSignal, { once: true });
     }
 
-    const text = await response.text();
-    let payload: unknown = null;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, this.requestTimeoutMs);
+    timeout.unref?.();
 
-    if (text.trim().length > 0) {
-      try {
-        payload = JSON.parse(text) as unknown;
-      } catch {
-        throw new Error(`OpenClaw runtime HTTP response at ${pathname} was not valid JSON.`);
+    try {
+      const response = await fetch(this.buildUrl(pathname), {
+        ...requestInit,
+        signal: controller.signal,
+        headers: this.headers(body),
+        body: body === undefined ? undefined : JSON.stringify(body)
+      });
+
+      if (options.allowNotFound && response.status === 404) {
+        return null;
       }
-    }
 
-    if (!response.ok) {
-      throw new Error(extractErrorMessage(payload, response.status));
-    }
+      const text = await response.text();
+      let payload: unknown = null;
 
-    return unwrapTransportPayload(payload);
+      if (text.trim().length > 0) {
+        try {
+          payload = JSON.parse(text) as unknown;
+        } catch {
+          throw new Error(`OpenClaw runtime HTTP response at ${pathname} was not valid JSON.`);
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error(extractErrorMessage(payload, response.status));
+      }
+
+      return unwrapTransportPayload(payload);
+    } catch (error) {
+      if (timedOut) {
+        throw new Error(`OpenClaw runtime HTTP request to ${pathname} timed out after ${this.requestTimeoutMs}ms.`);
+      }
+
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+      signal?.removeEventListener('abort', abortFromUpstreamSignal);
+    }
   }
 
   async fetchSnapshot(): Promise<OpenClawRuntimeRawSnapshot> {
@@ -512,6 +549,7 @@ export class HttpOpenClawRuntimeTransport implements OpenClawRuntimeTransport {
     let active = true;
     let timer: ReturnType<typeof setTimeout> | null = null;
     let previousSignature: string | null = null;
+    let backoffDelayMs = this.pollMs;
 
     const schedule = (delay: number) => {
       timer = setTimeout(run, delay);
@@ -520,6 +558,8 @@ export class HttpOpenClawRuntimeTransport implements OpenClawRuntimeTransport {
 
     const run = async () => {
       if (!active) return;
+
+      let nextDelay = this.pollMs;
 
       try {
         const snapshot = await this.fetchSnapshot();
@@ -530,12 +570,15 @@ export class HttpOpenClawRuntimeTransport implements OpenClawRuntimeTransport {
         }
 
         previousSignature = signature;
+        backoffDelayMs = this.pollMs;
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        console.warn(`[runtime][openclaw-http] subscription poll failed: ${message}`);
+        nextDelay = backoffDelayMs;
+        backoffDelayMs = Math.min(backoffDelayMs * 2, this.pollMaxBackoffMs);
+        console.warn(`[runtime][openclaw-http] subscription poll failed: ${message}; retrying in ${nextDelay}ms`);
       } finally {
         if (active) {
-          schedule(this.pollMs);
+          schedule(nextDelay);
         }
       }
     };
@@ -572,6 +615,8 @@ export function createOpenClawTransportFromEnv(): OpenClawRuntimeTransport | nul
     agentsPath: process.env.OPENCLAW_RUNTIME_AGENTS_PATH?.trim() || undefined,
     tasksPath: process.env.OPENCLAW_RUNTIME_TASKS_PATH?.trim() || undefined,
     eventsPath: process.env.OPENCLAW_RUNTIME_EVENTS_PATH?.trim() || undefined,
-    pollMs: parsePositiveInteger(process.env.OPENCLAW_RUNTIME_POLL_MS, 5000)
+    pollMs: parsePositiveInteger(process.env.OPENCLAW_RUNTIME_POLL_MS, 5000),
+    pollMaxBackoffMs: parsePositiveInteger(process.env.OPENCLAW_RUNTIME_POLL_MAX_BACKOFF_MS, 30000),
+    requestTimeoutMs: parsePositiveInteger(process.env.OPENCLAW_RUNTIME_REQUEST_TIMEOUT_MS, 5000)
   });
 }
