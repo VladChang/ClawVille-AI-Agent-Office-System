@@ -13,7 +13,7 @@ import {
 } from '@/lib/api';
 import { buildDashboardDerivedState } from '@/lib/dashboardDerivedState';
 import { shouldRetryRealtimeConnection, shouldStartRealtimeAfterLoadError } from '@/lib/realtimePolicy';
-import { isRealModeStrictError, isRuntimeNotConfiguredError } from '@/lib/runtimeAdapter';
+import { isInvalidRealtimePayloadCloseEvent, isRealModeStrictError, isRuntimeNotConfiguredError } from '@/lib/runtimeAdapter';
 import type { Agent, Event, Task } from '@/types/models';
 
 export type DashboardConnectionStatus = 'idle' | 'connecting' | 'connected' | 'degraded' | 'disconnected';
@@ -105,14 +105,17 @@ function startSocket(set: (partial: Partial<DashboardState>) => void, get: () =>
     });
   };
 
-  ws.onclose = () => {
+  ws.onclose = (event) => {
     ws = null;
+    const contractMismatch = isInvalidRealtimePayloadCloseEvent(event);
 
     if (!shouldRetryRealtimeConnection(hasConnectedRealtime, reconnectAttempt)) {
       clearReconnectTimer();
       set({
         connectionStatus: 'degraded',
-        connectionMessage: 'Realtime is unavailable right now. Refresh after the backend websocket is reachable.'
+        connectionMessage: contractMismatch
+          ? 'Realtime payload contract mismatch detected. Check backend/frontend runtime contract alignment.'
+          : 'Realtime is unavailable right now. Refresh after the backend websocket is reachable.'
       });
       return;
     }
@@ -122,7 +125,9 @@ function startSocket(set: (partial: Partial<DashboardState>) => void, get: () =>
 
     set({
       connectionStatus: 'disconnected',
-      connectionMessage: `Realtime disconnected. Retrying in ${Math.ceil(delay / 1000)}s…`
+      connectionMessage: contractMismatch
+        ? `Realtime payload contract mismatch detected. Retrying in ${Math.ceil(delay / 1000)}s…`
+        : `Realtime disconnected. Retrying in ${Math.ceil(delay / 1000)}s…`
     });
 
     clearReconnectTimer();

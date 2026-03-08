@@ -1,17 +1,9 @@
 import { FastifyInstance } from 'fastify';
 import websocketPlugin from '@fastify/websocket';
-import { Event } from '../models/types';
 import { runtimeBinding, runtimeSource } from '../runtime';
 import { RuntimeSnapshot } from '../runtime/runtimeSource';
 import { RuntimeSourceUnavailableError } from '../runtime/openclawRuntimeSource';
-
-interface RealtimePayload {
-  type: 'snapshot' | 'state_changed';
-  data: {
-    snapshot: RuntimeSnapshot;
-    event?: Event;
-  };
-}
+import { createRealtimeSnapshotPayload, createRealtimeStateChangedPayload, RealtimePayload } from './realtimeContract';
 
 function emptySnapshot(message: string): RuntimeSnapshot {
   const now = new Date().toISOString();
@@ -74,20 +66,17 @@ export async function registerRealtime(app: FastifyInstance): Promise<void> {
     };
 
     try {
-      send({ type: 'snapshot', data: { snapshot: runtimeSource.getSnapshot() } });
+      send(createRealtimeSnapshotPayload(runtimeSource.getSnapshot()));
     } catch (error) {
       if (error instanceof RuntimeSourceUnavailableError) {
-        send({
-          type: 'snapshot',
-          data: { snapshot: emptySnapshot(error.message) }
-        });
+        send(createRealtimeSnapshotPayload(emptySnapshot(error.message)));
       } else {
         throw error;
       }
     }
 
     const unsubscribe = runtimeSource.onStateChange(({ snapshot, event }) => {
-      send({ type: 'state_changed', data: { snapshot, event } });
+      send(createRealtimeStateChangedPayload(snapshot, event));
     });
 
     connection.socket.on('close', () => {

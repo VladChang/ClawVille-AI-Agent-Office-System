@@ -1,6 +1,6 @@
-import type { Agent, Event as SharedEvent, EventLevel, Task } from '../../shared/contracts';
+import type { Agent, Event as SharedEvent, EventLevel, Overview, Task } from '../../shared/contracts';
 
-export type { AgentStatus, TaskStatus, TaskPriority, EventLevel } from '../../shared/contracts';
+export type { AgentStatus, TaskStatus, TaskPriority, EventLevel, Overview } from '../../shared/contracts';
 
 export type Event = SharedEvent & { level: EventLevel };
 
@@ -40,7 +40,7 @@ export interface DashboardDerivedMetrics {
 }
 
 export interface DashboardSnapshot {
-  overview: unknown;
+  overview: Overview;
   agents: Agent[];
   tasks: Task[];
   events: Event[];

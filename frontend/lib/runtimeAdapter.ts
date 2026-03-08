@@ -1,13 +1,13 @@
 import { mockAgents, mockEvents, mockTasks } from '@/lib/mockData';
 import {
+  decodeRuntimeRealtimeEnvelope,
   mapRuntimeAgents,
   mapRuntimeEvents,
   mapRuntimeTasks,
-  parseApiEnvelopeData,
-  parseRuntimeRealtimeEnvelope
+  parseApiEnvelopeData
 } from '@/lib/runtimeContract';
 import { getRuntimeMode, type RuntimeMode } from '@/lib/runtime';
-import type { Agent, Event, Task } from '@/types/models';
+import type { Agent, DashboardSnapshot, Event, Task } from '@/types/models';
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001/api';
 const wsUrl = process.env.NEXT_PUBLIC_WS_URL ?? 'ws://localhost:3001/ws';
@@ -17,15 +17,14 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export interface SnapshotPayload {
   type: 'snapshot' | 'state_changed';
   data: {
-    snapshot: {
-      agents: Agent[];
-      tasks: Task[];
-      events: Event[];
-    };
+    snapshot: DashboardSnapshot;
+    event?: Event;
   };
 }
 
 const realModeErrorPrefix = '[Runtime mode: real]';
+export const INVALID_REALTIME_PAYLOAD_CLOSE_CODE = 4000;
+export const INVALID_REALTIME_PAYLOAD_CLOSE_REASON = 'INVALID_REALTIME_PAYLOAD';
 
 function toRealModeStrictError(action: string, error: unknown): Error {
   const message =
@@ -45,6 +44,15 @@ export function isRealModeStrictError(error: unknown): boolean {
 
 export function isRuntimeNotConfiguredError(error: unknown): boolean {
   return error instanceof Error && /RUNTIME_NOT_CONFIGURED|not configured/i.test(error.message);
+}
+
+export function isInvalidRealtimePayloadCloseEvent(
+  event: Pick<CloseEvent, 'code' | 'reason'> | null | undefined
+): boolean {
+  return (
+    !!event &&
+    (event.code === INVALID_REALTIME_PAYLOAD_CLOSE_CODE || event.reason === INVALID_REALTIME_PAYLOAD_CLOSE_REASON)
+  );
 }
 
 async function apiGet<T>(path: string, mapper: (data: unknown) => T): Promise<T> {
@@ -67,11 +75,26 @@ function connectRealDashboardWs(onMessage: (payload: SnapshotPayload) => void): 
 
   socket.onmessage = (event) => {
     try {
-      const parsed = parseRuntimeRealtimeEnvelope(JSON.parse(event.data));
-      if (!parsed) return;
-      onMessage(parsed);
-    } catch {
-      // Ignore malformed messages and keep stream alive.
+      if (typeof event.data !== 'string') {
+        console.error('[runtime][ws] Invalid realtime payload: WebSocket message must be text JSON.');
+        socket.close(INVALID_REALTIME_PAYLOAD_CLOSE_CODE, INVALID_REALTIME_PAYLOAD_CLOSE_REASON);
+        return;
+      }
+
+      const payload = JSON.parse(event.data) as unknown;
+      const decoded = decodeRuntimeRealtimeEnvelope(payload);
+
+      if (!decoded.ok) {
+        console.error(`[runtime][ws] Invalid realtime payload: ${decoded.error.message}`);
+        socket.close(INVALID_REALTIME_PAYLOAD_CLOSE_CODE, INVALID_REALTIME_PAYLOAD_CLOSE_REASON);
+        return;
+      }
+
+      onMessage(decoded.envelope);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown JSON parsing failure.';
+      console.error(`[runtime][ws] Invalid realtime payload: ${message}`);
+      socket.close(INVALID_REALTIME_PAYLOAD_CLOSE_CODE, INVALID_REALTIME_PAYLOAD_CLOSE_REASON);
     }
   };
 
@@ -124,9 +147,9 @@ function createMockSocket(onMessage: (payload: SnapshotPayload) => void): WebSoc
     onerror: null,
     onclose: null,
     onopen: null,
-    close: () => {
+    close: (code?: number, reason?: string) => {
       socket.readyState = WebSocket.CLOSED;
-      if (socket.onclose) socket.onclose({} as CloseEvent);
+      if (socket.onclose) socket.onclose({ code: code ?? 1000, reason: reason ?? '' } as CloseEvent);
     }
   } as MockSocket;
 
@@ -138,6 +161,27 @@ function createMockSocket(onMessage: (payload: SnapshotPayload) => void): WebSoc
       type: 'snapshot',
       data: {
         snapshot: {
+          overview: {
+            generatedAt: new Date(0).toISOString(),
+            counts: {
+              agents: mockAgents.length,
+              tasks: mockTasks.length,
+              events: mockEvents.length,
+              activeAgents: mockAgents.filter((agent) => agent.status === 'busy').length,
+              openTasks: mockTasks.filter((task) => task.status !== 'done').length
+            },
+            agentsByStatus: {
+              idle: mockAgents.filter((agent) => agent.status === 'idle').length,
+              busy: mockAgents.filter((agent) => agent.status === 'busy').length,
+              offline: mockAgents.filter((agent) => agent.status === 'offline').length
+            },
+            tasksByStatus: {
+              todo: mockTasks.filter((task) => task.status === 'todo').length,
+              in_progress: mockTasks.filter((task) => task.status === 'in_progress').length,
+              blocked: mockTasks.filter((task) => task.status === 'blocked').length,
+              done: mockTasks.filter((task) => task.status === 'done').length
+            }
+          },
           agents: mockAgents,
           tasks: mockTasks,
           events: mockEvents
