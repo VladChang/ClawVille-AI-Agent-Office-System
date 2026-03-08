@@ -7,7 +7,7 @@ import { useDashboardStore } from '@/store/dashboardStore';
 export default function AgentsPage() {
   const {
     agents,
-    tasks,
+    currentTaskByAgentId,
     agentSearch,
     agentStatusFilter,
     setAgentSearch,
@@ -20,7 +20,7 @@ export default function AgentsPage() {
     connectionMessage
   } = useDashboardStore((s) => ({
     agents: s.agents,
-    tasks: s.tasks,
+    currentTaskByAgentId: s.currentTaskByAgentId,
     agentSearch: s.agentSearch,
     agentStatusFilter: s.agentStatusFilter,
     setAgentSearch: s.setAgentSearch,
@@ -74,7 +74,7 @@ export default function AgentsPage() {
       ) : (
         <div className="space-y-2">
           {filtered.map((agent) => {
-            const task = tasks.find((t) => t.assigneeAgentId === agent.id && t.status !== 'done');
+            const task = currentTaskByAgentId[agent.id];
             const selected = selectedAgentId === agent.id;
             return (
               <button

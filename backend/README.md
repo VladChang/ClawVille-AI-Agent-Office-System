@@ -26,9 +26,15 @@ TypeScript + Fastify backend for ClawVille dashboard integration.
 ## Quick Start
 
 ```bash
+npm run bootstrap
+```
+
+Manual backend-only dev mode:
+
+```bash
 cd backend
-npm install
 cp .env.example .env
+npm install
 npm run dev
 ```
 
@@ -43,7 +49,7 @@ Defaults:
 - `npm run dev` — watch mode
 - `npm run build` — compile TypeScript
 - `npm start` — run compiled server
-- `npm run test` — run backend API tests (Node test runner via `tsx`)
+- `npm run test` — run backend API tests (Node test runner via `node --import tsx --test`)
 - `npm run check` — type-check + tests
 
 ## REST Endpoints

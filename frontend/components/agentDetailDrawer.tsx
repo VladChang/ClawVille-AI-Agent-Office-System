@@ -4,11 +4,11 @@ import { useMemo } from 'react';
 import { useDashboardStore } from '@/store/dashboardStore';
 
 export function AgentDetailDrawer() {
-  const { selectedAgentId, agents, tasks, selectAgent, pauseSelectedAgent, resumeSelectedAgent, retrySelectedAgentTask, controlLoading } =
+  const { selectedAgentId, agents, currentTaskByAgentId, selectAgent, pauseSelectedAgent, resumeSelectedAgent, retrySelectedAgentTask, controlLoading } =
     useDashboardStore((s) => ({
       selectedAgentId: s.selectedAgentId,
       agents: s.agents,
-      tasks: s.tasks,
+      currentTaskByAgentId: s.currentTaskByAgentId,
       selectAgent: s.selectAgent,
       pauseSelectedAgent: s.pauseSelectedAgent,
       resumeSelectedAgent: s.resumeSelectedAgent,
@@ -17,7 +17,7 @@ export function AgentDetailDrawer() {
     }));
 
   const selected = useMemo(() => agents.find((a) => a.id === selectedAgentId), [agents, selectedAgentId]);
-  const currentTask = tasks.find((t) => t.assigneeAgentId === selected?.id && t.status !== 'done');
+  const currentTask = selected ? currentTaskByAgentId[selected.id] : undefined;
 
   return (
     <aside

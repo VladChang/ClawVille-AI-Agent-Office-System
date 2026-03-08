@@ -13,8 +13,7 @@ Services:
 Run:
 
 ```bash
-docker compose build
-docker compose up -d
+npm run bootstrap -- --mode docker
 ```
 
 Validate:
@@ -29,7 +28,7 @@ curl -fsS http://localhost:3000
 Stop:
 
 ```bash
-docker compose down
+npm run stop
 ```
 
 ## 2) Health and readiness semantics

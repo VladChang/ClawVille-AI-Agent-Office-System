@@ -20,11 +20,28 @@ import {
 } from './jsonPersistence';
 
 const nowIso = () => new Date().toISOString();
+const DEFAULT_MAX_EVENTS = 500;
+const DEFAULT_MAX_TASK_TRANSITIONS = 1000;
+const DEFAULT_MAX_AGENT_STATUS_CHANGES = 1000;
+
+function parsePositiveInteger(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
 
 export type StoreSnapshot = RuntimeSnapshot;
 
 export class MockStore {
   private readonly emitter = new EventEmitter();
+  private readonly maxEvents = parsePositiveInteger(process.env.RUNTIME_MAX_EVENTS, DEFAULT_MAX_EVENTS);
+  private readonly maxTaskTransitions = parsePositiveInteger(
+    process.env.RUNTIME_MAX_TASK_TRANSITIONS,
+    DEFAULT_MAX_TASK_TRANSITIONS
+  );
+  private readonly maxAgentStatusChanges = parsePositiveInteger(
+    process.env.RUNTIME_MAX_AGENT_STATUS_CHANGES,
+    DEFAULT_MAX_AGENT_STATUS_CHANGES
+  );
 
   private taskTransitions: TaskTransitionRecord[] = [];
   private agentStatusChanges: AgentStatusRecord[] = [];
@@ -71,14 +88,31 @@ export class MockStore {
 
     this.agents = persisted.snapshot.agents;
     this.tasks = persisted.snapshot.tasks;
-    this.events = persisted.snapshot.events;
-    this.taskTransitions = persisted.history.taskTransitions;
-    this.agentStatusChanges = persisted.history.agentStatusChanges;
+    this.events = persisted.snapshot.events.slice(-this.maxEvents);
+    this.taskTransitions = persisted.history.taskTransitions.slice(-this.maxTaskTransitions);
+    this.agentStatusChanges = persisted.history.agentStatusChanges.slice(-this.maxAgentStatusChanges);
   }
 
   getOverview(): Overview {
-    const agentsByStatus = this.countByStatus<AgentStatus>(this.agents.map((a) => a.status), [...AGENT_STATUSES]);
-    const tasksByStatus = this.countByStatus<TaskStatus>(this.tasks.map((t) => t.status), [...TASK_STATUSES]);
+    const agentsByStatus: Record<AgentStatus, number> = { idle: 0, busy: 0, offline: 0 };
+    let activeAgents = 0;
+
+    for (const agent of this.agents) {
+      agentsByStatus[agent.status] += 1;
+      if (agent.status !== 'offline') {
+        activeAgents += 1;
+      }
+    }
+
+    const tasksByStatus: Record<TaskStatus, number> = { todo: 0, in_progress: 0, blocked: 0, done: 0 };
+    let openTasks = 0;
+
+    for (const task of this.tasks) {
+      tasksByStatus[task.status] += 1;
+      if (task.status !== 'done') {
+        openTasks += 1;
+      }
+    }
 
     return {
       generatedAt: nowIso(),
@@ -86,8 +120,8 @@ export class MockStore {
         agents: this.agents.length,
         tasks: this.tasks.length,
         events: this.events.length,
-        activeAgents: this.agents.filter((a) => a.status !== 'offline').length,
-        openTasks: this.tasks.filter((t) => t.status !== 'done').length
+        activeAgents,
+        openTasks
       },
       agentsByStatus,
       tasksByStatus
@@ -240,7 +274,7 @@ export class MockStore {
       timestamp: nowIso(),
       metadata
     };
-    this.events.push(event);
+    this.pushBounded(this.events, event, this.maxEvents);
     return event;
   }
 
@@ -249,12 +283,20 @@ export class MockStore {
     return () => this.emitter.off('state', listener);
   }
 
+  async flush(): Promise<void> {
+    await this.persistence?.flush();
+  }
+
   private recordTaskTransition(taskId: string, from: TaskStatus, to: TaskStatus): void {
-    this.taskTransitions.push({ taskId, from, to, at: nowIso() });
+    this.pushBounded(this.taskTransitions, { taskId, from, to, at: nowIso() }, this.maxTaskTransitions);
   }
 
   private recordAgentStatusChange(agentId: string, from: AgentStatus, to: AgentStatus): void {
-    this.agentStatusChanges.push({ agentId, from, to, at: nowIso() });
+    this.pushBounded(
+      this.agentStatusChanges,
+      { agentId, from, to, at: nowIso() },
+      this.maxAgentStatusChanges
+    );
   }
 
   private toPersistedData(): PersistedRuntimeData {
@@ -281,14 +323,11 @@ export class MockStore {
     this.emitter.emit('state', { snapshot: this.getSnapshot(), event });
   }
 
-  private countByStatus<T extends string>(values: T[], statuses: T[]): Record<T, number> {
-    return statuses.reduce(
-      (acc, status) => {
-        acc[status] = values.filter((value) => value === status).length;
-        return acc;
-      },
-      {} as Record<T, number>
-    );
+  private pushBounded<T>(list: T[], entry: T, max: number): void {
+    list.push(entry);
+    if (list.length > max) {
+      list.splice(0, list.length - max);
+    }
   }
 }
 

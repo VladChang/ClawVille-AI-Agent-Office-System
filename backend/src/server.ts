@@ -5,6 +5,8 @@ import { apiRoutes } from './routes/api';
 import { registerRealtime } from './realtime/websocket';
 import { runtimeBinding } from './runtime';
 import { recordRequestMetric } from './observability';
+import { auditTrail } from './audit/auditTrail';
+import { store } from './store/mockStore';
 
 const port = Number(process.env.PORT ?? 3001);
 const host = process.env.HOST ?? '0.0.0.0';
@@ -37,6 +39,10 @@ async function buildServer() {
     });
 
     done();
+  });
+
+  app.addHook('onClose', async () => {
+    await Promise.all([store.flush(), auditTrail.flush()]);
   });
 
   await app.register(apiRoutes, { prefix: '/api' });

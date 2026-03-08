@@ -112,17 +112,26 @@ export interface RuntimeAdapter {
 }
 
 function createMockSocket(onMessage: (payload: SnapshotPayload) => void): WebSocket {
+  type MockSocket = WebSocket & {
+    readyState: number;
+    onerror: WebSocket['onerror'];
+    onclose: WebSocket['onclose'];
+    onopen: WebSocket['onopen'];
+  };
+
   const socket = {
     readyState: WebSocket.CONNECTING,
     onerror: null,
     onclose: null,
     onopen: null,
     close: () => {
+      socket.readyState = WebSocket.CLOSED;
       if (socket.onclose) socket.onclose({} as CloseEvent);
     }
-  } as unknown as WebSocket;
+  } as MockSocket;
 
   queueMicrotask(() => {
+    socket.readyState = WebSocket.OPEN;
     if (socket.onopen) socket.onopen({} as globalThis.Event);
 
     onMessage({
@@ -137,7 +146,7 @@ function createMockSocket(onMessage: (payload: SnapshotPayload) => void): WebSoc
     });
   });
 
-  return socket;
+  return socket as WebSocket;
 }
 
 export function createRuntimeAdapter(mode: RuntimeMode = getRuntimeMode()): RuntimeAdapter {

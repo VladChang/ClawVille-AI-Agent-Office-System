@@ -57,9 +57,10 @@ function thoughtSummary(agent: Agent, taskTitle?: string): string {
 }
 
 export default function OfficePage() {
-  const { agents, tasks, loading, error, connectionStatus, connectionMessage, selectAgent, selectedAgentId } = useDashboardStore((s) => ({
+  const { agents, tasks, currentTaskByAgentId, loading, error, connectionStatus, connectionMessage, selectAgent, selectedAgentId } = useDashboardStore((s) => ({
     agents: s.agents,
     tasks: s.tasks,
+    currentTaskByAgentId: s.currentTaskByAgentId,
     loading: s.loading,
     error: s.error,
     connectionStatus: s.connectionStatus,
@@ -185,7 +186,7 @@ export default function OfficePage() {
           </svg>
 
           {mapAgents.map(({ agent, room, x, y }) => {
-            const currentTask = tasks.find((t) => t.assigneeAgentId === agent.id && t.status !== 'done');
+            const currentTask = currentTaskByAgentId[agent.id];
             const selected = selectedAgentId === agent.id;
 
             return (
@@ -233,7 +234,7 @@ export default function OfficePage() {
             ) : (
               <ul className="space-y-2">
                 {grouped[room].map((agent) => {
-                  const currentTask = tasks.find((t) => t.assigneeAgentId === agent.id && t.status !== 'done');
+                  const currentTask = currentTaskByAgentId[agent.id];
                   const selected = selectedAgentId === agent.id;
 
                   return (

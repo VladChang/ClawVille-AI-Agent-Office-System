@@ -1,0 +1,8 @@
+{
+  "name": "clawville-office-system",
+  "private": true,
+  "scripts": {
+    "bootstrap": "bash ./scripts/bootstrap.sh",
+    "stop": "bash ./scripts/stop.sh"
+  }
+}

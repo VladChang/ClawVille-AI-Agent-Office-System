@@ -5,9 +5,9 @@ import { DataHealthBanner, EmptyState } from '@/components/dataState';
 import { useDashboardStore } from '@/store/dashboardStore';
 
 export default function TasksPage() {
-  const { tasks, agents, taskSearch, setTaskSearch, loading, error, connectionStatus, connectionMessage } = useDashboardStore((s) => ({
+  const { tasks, agentNameById, taskSearch, setTaskSearch, loading, error, connectionStatus, connectionMessage } = useDashboardStore((s) => ({
     tasks: s.tasks,
-    agents: s.agents,
+    agentNameById: s.agentNameById,
     taskSearch: s.taskSearch,
     setTaskSearch: s.setTaskSearch,
     loading: s.loading,
@@ -47,7 +47,7 @@ export default function TasksPage() {
                 <Badge value={task.status} />
               </div>
               <p className="text-xs text-slate-400">Priority: {task.priority}</p>
-              <p className="mt-1 text-xs text-slate-400">Agent: {agents.find((a) => a.id === task.assigneeAgentId)?.name ?? 'Unassigned'}</p>
+              <p className="mt-1 text-xs text-slate-400">Agent: {task.assigneeAgentId ? agentNameById[task.assigneeAgentId] ?? 'Unassigned' : 'Unassigned'}</p>
               <p className="mt-1 text-xs text-slate-400">Updated: {new Date(task.updatedAt).toLocaleString()}</p>
             </div>
           ))}

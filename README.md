@@ -17,6 +17,32 @@ ClawVille is an **internal dashboard prototype** for observing and operating mul
 - Backend `npm run test` currently hangs when running the new auth/audit test suite (tracked in-session). Use `AUTH_MODE=off` (default) and run targeted tests if needed; fix pending.
 - Release process docs/checklists exist (prototype and production-candidate gates)
 
+## One-Command Bootstrap
+
+Preferred:
+
+```bash
+npm run bootstrap
+```
+
+Equivalent:
+
+```bash
+bash scripts/bootstrap.sh
+```
+
+Behavior:
+- Prefers Docker Compose when Docker is available
+- Falls back to local Node deployment otherwise
+- Auto-creates missing `.env`, `backend/.env`, and `frontend/.env.local` from checked-in examples
+- Waits for backend/frontend health before returning
+
+Stop everything:
+
+```bash
+npm run stop
+```
+
 ### In Progress
 - Real OpenClaw transport/client implementation behind `OpenClawRuntimeSource`
 - Production hardening: auth/RBAC, persistence, audit trail, stronger alerting/SLO posture
@@ -98,17 +124,7 @@ RuntimeSource
 ## Quick Local Run
 
 ```bash
-# backend
-cd backend
-npm install
-cp .env.example .env
-npm run dev
-
-# frontend (new terminal)
-cd frontend
-npm install
-cp .env.example .env.local
-npm run dev
+npm run bootstrap -- --mode local
 ```
 
 Optional acceptance smoke:
@@ -116,4 +132,11 @@ Optional acceptance smoke:
 ```bash
 cd frontend
 npm run acceptance:e2e
+```
+
+Manual dev mode is still available if you want hot reload:
+
+```bash
+cd backend && cp .env.example .env && npm install && npm run dev
+cd frontend && cp .env.example .env.local && npm install && npm run dev
 ```

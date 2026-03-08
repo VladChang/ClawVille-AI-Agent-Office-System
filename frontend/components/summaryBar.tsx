@@ -3,22 +3,20 @@
 import { useDashboardStore } from '@/store/dashboardStore';
 
 export function SummaryBar() {
-  const { agents, tasks, events, connectionStatus } = useDashboardStore((s) => ({
-    agents: s.agents,
-    tasks: s.tasks,
-    events: s.events,
+  const { agentCount, activeAgentCount, blockedTaskCount, eventCount, connectionStatus } = useDashboardStore((s) => ({
+    agentCount: s.agents.length,
+    activeAgentCount: s.activeAgentCount,
+    blockedTaskCount: s.blockedTaskCount,
+    eventCount: s.events.length,
     connectionStatus: s.connectionStatus
   }));
 
-  const activeAgents = agents.filter((a) => a.status !== 'offline').length;
-  const blockedTasks = tasks.filter((t) => t.status === 'blocked').length;
-
   return (
     <header className="grid grid-cols-2 gap-3 border-b border-slate-800 bg-slate-900/60 p-4 md:grid-cols-5">
-      <Stat label="Agents" value={agents.length} />
-      <Stat label="Active Agents" value={activeAgents} />
-      <Stat label="Blocked Tasks" value={blockedTasks} />
-      <Stat label="Events" value={events.length} />
+      <Stat label="Agents" value={agentCount} />
+      <Stat label="Active Agents" value={activeAgentCount} />
+      <Stat label="Blocked Tasks" value={blockedTaskCount} />
+      <Stat label="Events" value={eventCount} />
       <StatusStat status={connectionStatus} />
     </header>
   );

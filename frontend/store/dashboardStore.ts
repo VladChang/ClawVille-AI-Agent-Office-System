@@ -1,7 +1,18 @@
 'use client';
 
 import { create } from 'zustand';
-import { connectDashboardWs, fetchAgents, fetchEvents, fetchTasks, pauseAgent, resumeAgent, retryTask } from '@/lib/api';
+import {
+  connectDashboardWs,
+  fetchAgents,
+  fetchEvents,
+  fetchTasks,
+  getConfiguredRuntimeMode,
+  pauseAgent,
+  resumeAgent,
+  retryTask
+} from '@/lib/api';
+import { buildDashboardDerivedState } from '@/lib/dashboardDerivedState';
+import { shouldRetryRealtimeConnection, shouldStartRealtimeAfterLoadError } from '@/lib/realtimePolicy';
 import { isRealModeStrictError, isRuntimeNotConfiguredError } from '@/lib/runtimeAdapter';
 import type { Agent, Event, Task } from '@/types/models';
 
@@ -11,6 +22,11 @@ interface DashboardState {
   agents: Agent[];
   tasks: Task[];
   events: Event[];
+  activeAgentCount: number;
+  blockedTaskCount: number;
+  agentNameById: Record<string, string>;
+  currentTaskByAgentId: Record<string, Task>;
+  blockedTaskByAgentId: Record<string, Task>;
   selectedAgentId: string | null;
   loading: boolean;
   hasLoaded: boolean;
@@ -36,6 +52,7 @@ interface DashboardState {
 let ws: WebSocket | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempt = 0;
+let hasConnectedRealtime = false;
 
 const reconnectBaseMs = 1000;
 const reconnectMaxMs = 30000;
@@ -52,6 +69,17 @@ function clearReconnectTimer(): void {
   reconnectTimer = null;
 }
 
+function snapshotState(snapshot: { agents: Agent[]; tasks: Task[]; events: Event[] }): Partial<DashboardState> {
+  return {
+    agents: snapshot.agents,
+    tasks: snapshot.tasks,
+    events: [...snapshot.events].reverse(),
+    hasLoaded: true,
+    loading: false,
+    ...buildDashboardDerivedState(snapshot.agents, snapshot.tasks)
+  };
+}
+
 function startSocket(set: (partial: Partial<DashboardState>) => void, get: () => DashboardState): void {
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
     return;
@@ -60,18 +88,12 @@ function startSocket(set: (partial: Partial<DashboardState>) => void, get: () =>
   set({ connectionStatus: 'connecting', connectionMessage: 'Connecting to realtime updates…' });
 
   ws = connectDashboardWs((message) => {
-    const snapshot = message.data.snapshot;
-    set({
-      agents: snapshot.agents,
-      tasks: snapshot.tasks,
-      events: [...snapshot.events].reverse(),
-      hasLoaded: true,
-      loading: false
-    });
+    set(snapshotState(message.data.snapshot));
   });
 
   ws.onopen = () => {
     reconnectAttempt = 0;
+    hasConnectedRealtime = true;
     clearReconnectTimer();
     set({ connectionStatus: 'connected', connectionMessage: null });
   };
@@ -85,6 +107,15 @@ function startSocket(set: (partial: Partial<DashboardState>) => void, get: () =>
 
   ws.onclose = () => {
     ws = null;
+
+    if (!shouldRetryRealtimeConnection(hasConnectedRealtime, reconnectAttempt)) {
+      clearReconnectTimer();
+      set({
+        connectionStatus: 'degraded',
+        connectionMessage: 'Realtime is unavailable right now. Refresh after the backend websocket is reachable.'
+      });
+      return;
+    }
 
     const delay = reconnectDelayMs(reconnectAttempt);
     reconnectAttempt += 1;
@@ -106,6 +137,11 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   agents: [],
   tasks: [],
   events: [],
+  activeAgentCount: 0,
+  blockedTaskCount: 0,
+  agentNameById: {},
+  currentTaskByAgentId: {},
+  blockedTaskByAgentId: {},
   selectedAgentId: null,
   loading: false,
   hasLoaded: false,
@@ -119,16 +155,18 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   eventLevelFilter: 'all',
   initialize: async () => {
     const hasLoaded = get().hasLoaded;
+    const runtimeMode = getConfiguredRuntimeMode();
+    clearReconnectTimer();
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      reconnectAttempt = 0;
+      hasConnectedRealtime = false;
+    }
     set({ loading: !hasLoaded, error: null });
 
     try {
       const [agents, tasks, events] = await Promise.all([fetchAgents(), fetchTasks(), fetchEvents()]);
       set({
-        agents,
-        tasks,
-        events: [...events].reverse(),
-        loading: false,
-        hasLoaded: true,
+        ...snapshotState({ agents, tasks, events }),
         error: null
       });
       startSocket(set, get);
@@ -150,7 +188,9 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         set({ hasLoaded: true });
       }
 
-      startSocket(set, get);
+      if (shouldStartRealtimeAfterLoadError(runtimeMode, error)) {
+        startSocket(set, get);
+      }
     }
   },
   selectAgent: (id) => set({ selectedAgentId: id }),
@@ -186,7 +226,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
   retrySelectedAgentTask: async () => {
     const selectedAgentId = get().selectedAgentId;
-    const task = get().tasks.find((item) => item.assigneeAgentId === selectedAgentId && item.status === 'blocked');
+    const task = selectedAgentId ? get().blockedTaskByAgentId[selectedAgentId] : undefined;
     if (!task) {
       set({ error: 'No blocked task found for this agent.' });
       return;

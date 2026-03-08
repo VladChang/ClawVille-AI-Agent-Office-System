@@ -1,4 +1,6 @@
 import { createRuntimeAdapter, type SnapshotPayload } from '@/lib/runtimeAdapter';
+import { getOperatorHeaders } from '@/lib/operator';
+import type { RuntimeMode } from '@/lib/runtime';
 import type { Agent, Event, Task } from '@/types/models';
 
 const runtime = createRuntimeAdapter();
@@ -20,7 +22,10 @@ const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:300
 async function apiPost<T>(path: string): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' }
+    headers: {
+      'Content-Type': 'application/json',
+      ...getOperatorHeaders()
+    }
   });
   const json = (await response.json()) as { success: boolean; data: T; error?: { message?: string } };
 
@@ -29,6 +34,10 @@ async function apiPost<T>(path: string): Promise<T> {
   }
 
   return json.data;
+}
+
+export function getConfiguredRuntimeMode(): RuntimeMode {
+  return runtime.mode;
 }
 
 export async function pauseAgent(agentId: string): Promise<Agent> {

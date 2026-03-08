@@ -5,9 +5,15 @@ Next.js dashboard connected to ClawVille backend REST + WebSocket.
 ## Setup
 
 ```bash
+npm run bootstrap
+```
+
+Manual frontend-only dev mode:
+
+```bash
 cd frontend
-npm install
 cp .env.example .env.local
+npm install
 npm run dev
 ```
 
@@ -21,6 +27,8 @@ Default app URL: `http://localhost:3000`
   - `mock`: frontend fixtures only
   - `local`: backend-first with mock fallback
   - `real`: strict backend mode (no fallback)
+- `NEXT_PUBLIC_OPERATOR_ID` (default `demo-operator`)
+- `NEXT_PUBLIC_OPERATOR_ROLE` (`viewer` | `operator` | `admin`, default `operator`)
 - `NEXT_PUBLIC_USE_MOCK_API` (`false` by default, legacy compatibility flag)
 
 When `NEXT_PUBLIC_RUNTIME_MODE=real`, runtime failures are surfaced as strict-mode errors in dashboard state so operators can immediately see configuration/runtime issues.

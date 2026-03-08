@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import Fastify from 'fastify';
+import path from 'node:path';
+import { tmpdir } from 'node:os';
 import { apiRoutes } from '../src/routes/api';
+import { auditTrail } from '../src/audit/auditTrail';
 
 async function createApp() {
   const app = Fastify();
@@ -35,5 +39,32 @@ test('mutation actions are captured in audit trail endpoint', async () => {
   } finally {
     await app.close();
     delete process.env.AUTH_MODE;
+  }
+});
+
+test('audit trail flush persists buffered records to file', async () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'clawville-audit-'));
+  const filePath = path.join(dir, 'audit.jsonl');
+
+  process.env.AUDIT_LOG_ENABLED = 'true';
+  process.env.AUDIT_LOG_FILE = filePath;
+
+  try {
+    auditTrail.record({
+      actorId: 'flush-user',
+      actorRole: 'operator',
+      action: 'system.flush_check',
+      targetType: 'system',
+      result: 'success'
+    });
+
+    await auditTrail.flush();
+
+    const file = readFileSync(filePath, 'utf8');
+    assert.match(file, /"actorId":"flush-user"/);
+    assert.match(file, /"action":"system\.flush_check"/);
+  } finally {
+    delete process.env.AUDIT_LOG_ENABLED;
+    delete process.env.AUDIT_LOG_FILE;
   }
 });

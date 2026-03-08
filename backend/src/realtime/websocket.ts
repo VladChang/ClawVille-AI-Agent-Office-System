@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import websocketPlugin from '@fastify/websocket';
 import { Event } from '../models/types';
-import { runtimeSource } from '../runtime';
+import { runtimeBinding, runtimeSource } from '../runtime';
 import { RuntimeSnapshot } from '../runtime/runtimeSource';
 import { RuntimeSourceUnavailableError } from '../runtime/openclawRuntimeSource';
 
@@ -35,8 +35,36 @@ function emptySnapshot(message: string): RuntimeSnapshot {
   };
 }
 
+let simulationInterval: ReturnType<typeof setInterval> | null = null;
+
+function shouldRunSimulationLoop(): boolean {
+  return runtimeBinding.mode === 'mock' || runtimeBinding.allowFallback;
+}
+
+function ensureSimulationLoop(): void {
+  if (!shouldRunSimulationLoop() || simulationInterval) return;
+
+  simulationInterval = setInterval(() => {
+    runtimeSource.updateRandomState();
+  }, 5000);
+
+  simulationInterval.unref?.();
+}
+
+function stopSimulationLoop(): void {
+  if (!simulationInterval) return;
+  clearInterval(simulationInterval);
+  simulationInterval = null;
+}
+
 export async function registerRealtime(app: FastifyInstance): Promise<void> {
   await app.register(websocketPlugin);
+  ensureSimulationLoop();
+
+  app.addHook('onClose', (_instance, done) => {
+    stopSimulationLoop();
+    done();
+  });
 
   app.get('/ws', { websocket: true }, (connection) => {
     const send = (message: RealtimePayload) => {
@@ -62,13 +90,8 @@ export async function registerRealtime(app: FastifyInstance): Promise<void> {
       send({ type: 'state_changed', data: { snapshot, event } });
     });
 
-    const interval = setInterval(() => {
-      runtimeSource.updateRandomState();
-    }, 5000);
-
     connection.socket.on('close', () => {
       unsubscribe();
-      clearInterval(interval);
     });
   });
 }
