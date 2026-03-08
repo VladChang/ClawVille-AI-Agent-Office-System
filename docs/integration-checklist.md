@@ -2,6 +2,9 @@
 
 Use this checklist after starting backend (`:3001`) and frontend (`:3000`) to verify the current REST + WebSocket runtime flow.
 
+> Scope note: this checklist validates local/runtime-boundary integration for the dashboard, API, and websocket flow.
+> It does not by itself guarantee full live OpenClaw transport readiness unless the deployment under test is wired to a real upstream runtime and that live transport path is part of the run.
+
 ## Setup
 
 - [ ] Preferred startup path: `npm run bootstrap -- --mode local`
