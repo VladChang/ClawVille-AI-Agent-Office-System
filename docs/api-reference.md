@@ -31,10 +31,24 @@ Common error codes currently used:
 - `RUNTIME_NOT_CONFIGURED`
 - `RUNTIME_UNAVAILABLE`
 - `NOT_READY`
+- `UNAUTHORIZED`
+- `FORBIDDEN`
 
 ---
 
 ## Endpoints
+
+## Operator Auth/RBAC (optional)
+
+When `AUTH_MODE=header`, mutation endpoints require:
+- `x-operator-id: <string>`
+- `x-operator-role: viewer | operator | admin`
+
+Permissions:
+- `viewer`: read-only (mutation endpoints return `403 FORBIDDEN`)
+- `operator`, `admin`: read + mutation
+
+If missing/invalid headers in header mode, mutation endpoints return `401 UNAUTHORIZED`.
 
 ## Request Correlation
 
@@ -169,6 +183,19 @@ Returns all events.
 
 ## `GET /events?limit=20`
 Returns last `limit` events.
+
+## `GET /audit?limit=50`
+Returns recent operator audit entries (newest first).
+
+Each entry includes:
+- `at`
+- `actorId`
+- `actorRole`
+- `action`
+- `targetType`
+- `targetId` (optional)
+- `result` (`success | failure`)
+- `reason` (optional)
 
 ---
 

@@ -10,7 +10,11 @@ ClawVille is an **internal dashboard prototype** for observing and operating mul
 - Operator actions available: pause/resume agent, retry task, task status update
 - Runtime abstraction exists (`RuntimeSource`) with `mock` and `openclaw` bindings
 - Optional durable local persistence baseline for runtime snapshot + transition history (`RUNTIME_PERSISTENCE_ENABLED`)
+- Header-based auth/RBAC gate (optional) + operator audit trail endpoint baseline (`AUTH_MODE=header`, `/api/audit`)
 - Local dev, Docker compose run path, and baseline acceptance smoke are in place
+
+### Known Issues
+- Backend `npm run test` currently hangs when running the new auth/audit test suite (tracked in-session). Use `AUTH_MODE=off` (default) and run targeted tests if needed; fix pending.
 - Release process docs/checklists exist (prototype and production-candidate gates)
 
 ### In Progress
