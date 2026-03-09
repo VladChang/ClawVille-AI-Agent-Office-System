@@ -38,3 +38,31 @@ body {
 .animate-collab-flow {
   animation: collabFlow 1.2s linear infinite;
 }
+
+@keyframes officeFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.animate-office-float {
+  animation: officeFloat 2s ease-in-out infinite;
+}
+
+@keyframes incidentAlert {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(251, 113, 133, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(251, 113, 133, 0.06);
+  }
+}
+
+.animate-incident-alert {
+  animation: incidentAlert 1.6s ease-in-out infinite;
+}
