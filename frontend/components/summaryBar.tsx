@@ -1,6 +1,13 @@
 'use client';
 
-import { getConnectionStatusLabel, getRuntimeSourceDetail, getRuntimeSourceLabel, workforceLabels } from '@/lib/presentation';
+import {
+  getConnectionStatusLabel,
+  getRuntimeSourceDetail,
+  getRuntimeSourceLabel,
+  getRuntimeSourceTone,
+  getRuntimeVerificationLabel,
+  workforceLabels
+} from '@/lib/presentation';
 import { useDashboardStore } from '@/store/dashboardStore';
 
 export function SummaryBar() {
@@ -20,7 +27,12 @@ export function SummaryBar() {
       <Stat label="阻塞任務" value={blockedTaskCount} />
       <Stat label="事件數" value={eventCount} />
       <StatusStat status={connectionStatus} />
-      <SourceStat label={getRuntimeSourceLabel(runtimeStatus)} detail={getRuntimeSourceDetail(runtimeStatus)} verified={runtimeStatus?.verified ?? false} />
+      <SourceStat
+        label={getRuntimeSourceLabel(runtimeStatus)}
+        verification={getRuntimeVerificationLabel(runtimeStatus)}
+        detail={getRuntimeSourceDetail(runtimeStatus)}
+        tone={getRuntimeSourceTone(runtimeStatus)}
+      />
     </header>
   );
 }
@@ -52,13 +64,31 @@ function StatusStat({ status }: { status: 'idle' | 'connecting' | 'connected' | 
   );
 }
 
-function SourceStat({ label, detail, verified }: { label: string; detail: string | null; verified: boolean }) {
-  const tone = verified ? 'text-emerald-300' : 'text-amber-300';
+function SourceStat({
+  label,
+  verification,
+  detail,
+  tone
+}: {
+  label: string;
+  verification: string;
+  detail: string | null;
+  tone: 'neutral' | 'verified' | 'caution' | 'danger';
+}) {
+  const toneClass =
+    tone === 'verified'
+      ? 'text-emerald-300'
+      : tone === 'danger'
+        ? 'text-rose-300'
+        : tone === 'caution'
+          ? 'text-amber-300'
+          : 'text-slate-300';
 
   return (
     <div className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2">
       <p className="text-xs text-slate-400">資料來源</p>
-      <p className={`text-sm font-semibold ${tone}`}>{label}</p>
+      <p className={`text-sm font-semibold ${toneClass}`}>{label}</p>
+      <p className="mt-1 text-[11px] text-slate-400">{verification}</p>
       {detail && <p className="mt-1 text-[11px] text-slate-500">{detail}</p>}
     </div>
   );

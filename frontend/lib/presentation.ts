@@ -9,6 +9,8 @@ import {
 import type { Agent, RuntimeStatusSnapshot } from '@/types/models';
 import type { DashboardConnectionStatus } from '@/store/dashboardStore';
 
+export type RuntimeSourceTone = 'neutral' | 'verified' | 'caution' | 'danger';
+
 export const workforceLabels = {
   singular: '員工',
   list: '員工列表',
@@ -140,6 +142,44 @@ export function getRuntimeSourceLabel(status: RuntimeStatusSnapshot | null): str
       return '未設定';
     default:
       return '未知';
+  }
+}
+
+export function getRuntimeSourceTone(status: RuntimeStatusSnapshot | null): RuntimeSourceTone {
+  if (!status) return 'neutral';
+
+  switch (status.dataSource) {
+    case 'openclaw_upstream':
+      return 'verified';
+    case 'openclaw_strict_unconfigured':
+      return 'danger';
+    case 'openclaw_fixture':
+    case 'openclaw_adapter_only':
+    case 'openclaw_mock_fallback':
+      return 'caution';
+    case 'mock':
+    default:
+      return 'neutral';
+  }
+}
+
+export function getRuntimeVerificationLabel(status: RuntimeStatusSnapshot | null): string {
+  if (!status) return '資料來源未確認';
+
+  switch (status.dataSource) {
+    case 'openclaw_upstream':
+      return '已驗證真實 OpenClaw 上游';
+    case 'openclaw_fixture':
+      return '目前為 OpenClaw 測試資料';
+    case 'openclaw_adapter_only':
+      return 'Adapter 可達，但真實上游未驗證';
+    case 'openclaw_mock_fallback':
+      return '目前退回模擬備援';
+    case 'openclaw_strict_unconfigured':
+      return '尚未完成 OpenClaw 設定';
+    case 'mock':
+    default:
+      return '目前為模擬資料';
   }
 }
 

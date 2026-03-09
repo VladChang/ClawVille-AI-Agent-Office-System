@@ -3,11 +3,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge, Card } from '@/components/ui';
 import { DataHealthBanner, EmptyState } from '@/components/dataState';
-import { getAgentLabel, getAgentStatusLabel, getEventLevelLabel, workforceLabels } from '@/lib/presentation';
+import {
+  getAgentLabel,
+  getAgentStatusLabel,
+  getEventLevelLabel,
+  getRuntimeSourceDetail,
+  getRuntimeSourceTone,
+  getRuntimeVerificationLabel,
+  getTaskStatusLabel,
+  workforceLabels
+} from '@/lib/presentation';
 import { getOfficeAnchorPoints, getOfficeZoneCenter } from '@/lib/officeMap';
 import { createOfficeSimulation, getOfficeSceneZones, type OfficeActorState } from '@/lib/officeSimulation';
 import { resolveOfficePortraitAsset, resolveOfficeTheme } from '@/lib/officeTheme';
 import { useDashboardStore } from '@/store/dashboardStore';
+import type { Task } from '@/types/models';
 
 const stateMeta: Record<OfficeActorState, { label: string; icon: string; tone: string }> = {
   working: { label: '工作中', icon: '💼', tone: 'border-cyan-500/60 bg-cyan-500/10 text-cyan-100' },
@@ -34,11 +44,47 @@ function toSvgPoints(points: { x: number; y: number }[]): string {
   return points.map((point) => `${point.x},${point.y}`).join(' ');
 }
 
+function getRuntimeToneClasses(tone: ReturnType<typeof getRuntimeSourceTone>): string {
+  switch (tone) {
+    case 'verified':
+      return 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100';
+    case 'danger':
+      return 'border-rose-500/40 bg-rose-500/10 text-rose-100';
+    case 'caution':
+      return 'border-amber-500/40 bg-amber-500/10 text-amber-100';
+    case 'neutral':
+    default:
+      return 'border-slate-700 bg-slate-900/70 text-slate-200';
+  }
+}
+
+function getActorRingClasses(actorState: OfficeActorState, task: Task | undefined, status: 'idle' | 'busy' | 'offline'): string {
+  if (task?.status === 'blocked' || actorState === 'incident' || status === 'offline') {
+    return 'ring-rose-400/85 border-rose-300/40';
+  }
+
+  if (task?.status === 'in_progress' || actorState === 'working' || status === 'busy') {
+    return 'ring-cyan-300/80 border-cyan-200/40';
+  }
+
+  if (actorState === 'meeting') {
+    return 'ring-violet-300/75 border-violet-200/40';
+  }
+
+  if (actorState === 'resting') {
+    return 'ring-emerald-300/75 border-emerald-200/40';
+  }
+
+  return 'ring-amber-300/70 border-white/20';
+}
+
 export default function OfficePage() {
   const {
     agents,
     tasks,
     events,
+    currentTaskByAgentId,
+    runtimeStatus,
     loading,
     error,
     notice,
@@ -50,6 +96,8 @@ export default function OfficePage() {
     agents: s.agents,
     tasks: s.tasks,
     events: s.events,
+    currentTaskByAgentId: s.currentTaskByAgentId,
+    runtimeStatus: s.runtimeStatus,
     loading: s.loading,
     error: s.error,
     notice: s.notice,
@@ -92,6 +140,9 @@ export default function OfficePage() {
 
   const hoveredActor = scene.actors.find((actor) => actor.agentId === hoveredActorId) ?? null;
   const agentsById = useMemo(() => new Map(agents.map((agent) => [agent.id, agent])), [agents]);
+  const runtimeTone = getRuntimeSourceTone(runtimeStatus);
+  const runtimeLabel = getRuntimeVerificationLabel(runtimeStatus);
+  const runtimeDetail = getRuntimeSourceDetail(runtimeStatus);
 
   const activitySignals = useMemo(() => {
     const eventSignals = events
@@ -169,6 +220,13 @@ export default function OfficePage() {
             {debugOverlay ? '隱藏地圖偵錯' : '顯示地圖偵錯'}
           </button>
         </div>
+        <div className={`mb-3 rounded-2xl border px-3 py-2 text-xs ${getRuntimeToneClasses(runtimeTone)}`}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="font-medium">{runtimeLabel}</div>
+            <div className="text-[11px] opacity-80">{runtimeStatus?.verified ? '可作為正式展示資料' : '目前請視為展示前驗證狀態'}</div>
+          </div>
+          {runtimeDetail && <p className="mt-1 text-[11px] opacity-80">{runtimeDetail}</p>}
+        </div>
         {agents.length === 0 ? (
           <EmptyState
             title={workforceLabels.officeEmpty}
@@ -243,11 +301,13 @@ export default function OfficePage() {
               {scene.actors.map((actor) => {
                 const meta = stateMeta[actor.state];
                 const selected = selectedAgentId === actor.agentId;
+                const currentTask = currentTaskByAgentId[actor.agentId];
                 const portrait = resolveOfficePortraitAsset(
                   agentsById.get(actor.agentId) ?? { role: actor.role, status: actor.status },
                   officeTheme
                 );
                 const zIndex = selected ? 5200 : hoveredActorId === actor.agentId ? 4600 : 1000 + Math.round(actor.y);
+                const ringClasses = getActorRingClasses(actor.state, currentTask, actor.status);
 
                 return (
                   <button
@@ -272,12 +332,12 @@ export default function OfficePage() {
                           : actor.state === 'incident'
                             ? 'animate-incident-alert'
                             : actor.state === 'wandering' || actor.state === 'resting'
-                              ? 'animate-office-float'
+                            ? 'animate-office-float'
                               : ''
-                      } ${selected ? 'ring-2 ring-cyan-300/80 ring-offset-2 ring-offset-slate-950' : ''}`}
+                      } ${selected ? 'ring-2 ring-cyan-300/80 ring-offset-2 ring-offset-slate-950' : `ring-2 ${ringClasses}`}`}
                       style={{
                         background: `linear-gradient(180deg, rgba(15,23,42,0.22) 0%, rgba(15,23,42,0.68) 100%), radial-gradient(circle at 50% 18%, ${actor.accent} 0%, rgba(15,23,42,0.2) 45%, rgba(2,6,23,0.88) 100%)`,
-                        borderColor: selected ? '#67e8f9' : 'rgba(255,255,255,0.22)'
+                        borderColor: selected ? '#67e8f9' : undefined
                       }}
                     >
                       <span
@@ -294,6 +354,19 @@ export default function OfficePage() {
                     <span className="absolute -right-1 top-0 rounded-full border border-slate-700/80 bg-slate-950/95 px-1.5 py-0.5 text-[10px]">
                       {meta.icon}
                     </span>
+                    {currentTask && (
+                      <span
+                        className={`absolute -right-2 bottom-6 rounded-full border px-1.5 py-0.5 text-[10px] font-medium shadow ${
+                          currentTask.status === 'blocked'
+                            ? 'border-rose-700/80 bg-rose-950/95 text-rose-100'
+                            : currentTask.status === 'in_progress'
+                              ? 'border-cyan-700/80 bg-cyan-950/95 text-cyan-100'
+                              : 'border-slate-700/80 bg-slate-950/95 text-slate-200'
+                        }`}
+                      >
+                        {getTaskStatusLabel(currentTask.status)}
+                      </span>
+                    )}
                     <span
                       className="absolute -left-1 top-1 h-2.5 w-2.5 rounded-full border border-slate-950/80"
                       style={{ backgroundColor: actor.accent }}
@@ -340,6 +413,11 @@ export default function OfficePage() {
                     <p>
                       <span className="text-slate-500">任務：</span> {hoveredActor.taskTitle ?? '暫無'}
                     </p>
+                    {currentTaskByAgentId[hoveredActor.agentId] && (
+                      <p>
+                        <span className="text-slate-500">任務狀態：</span> {getTaskStatusLabel(currentTaskByAgentId[hoveredActor.agentId].status)}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
