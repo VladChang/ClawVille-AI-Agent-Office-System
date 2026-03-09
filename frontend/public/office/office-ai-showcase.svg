@@ -1,0 +1,82 @@
+<svg width="1200" height="720" viewBox="0 0 1200 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="34" y1="46" x2="1126" y2="689" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#12243B"/>
+      <stop offset="0.45" stop-color="#162C48"/>
+      <stop offset="1" stop-color="#0C1726"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="620" y1="75" x2="620" y2="681" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F2034"/>
+      <stop offset="1" stop-color="#12253A"/>
+    </linearGradient>
+    <radialGradient id="glowA" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(210 154) rotate(50.2893) scale(183.994 127.014)">
+      <stop stop-color="#38BDF8" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#38BDF8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowB" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(986 616) rotate(112.353) scale(194.728 232.396)">
+      <stop stop-color="#34D399" stop-opacity="0.26"/>
+      <stop offset="1" stop-color="#34D399" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="720" rx="28" fill="#07111E"/>
+  <rect x="28" y="42" width="1144" height="636" rx="28" fill="url(#bg)" stroke="#334155" stroke-width="4"/>
+  <rect x="40" y="56" width="1120" height="608" rx="24" fill="url(#glass)"/>
+  <ellipse cx="210" cy="154" rx="208" ry="128" fill="url(#glowA)"/>
+  <ellipse cx="986" cy="616" rx="208" ry="180" fill="url(#glowB)"/>
+  <rect x="44" y="262" width="1112" height="56" rx="18" fill="#1B2B41"/>
+  <rect x="44" y="522" width="1112" height="56" rx="18" fill="#1B2B41"/>
+  <rect x="268" y="82" width="64" height="598" rx="24" fill="#16263B"/>
+  <rect x="608" y="82" width="64" height="598" rx="24" fill="#16263B"/>
+  <rect x="828" y="82" width="64" height="598" rx="24" fill="#16263B"/>
+
+  <g fill="#11253B" stroke="#60A5FA" stroke-opacity="0.22">
+    <rect x="70" y="82" width="250" height="170" rx="24"/>
+    <rect x="360" y="82" width="250" height="170" rx="24"/>
+    <rect x="70" y="342" width="220" height="160" rx="24"/>
+    <rect x="320" y="342" width="310" height="160" rx="24"/>
+    <rect x="670" y="342" width="160" height="160" rx="24"/>
+  </g>
+  <rect x="850" y="82" width="280" height="170" rx="24" fill="#1F314A" stroke="#F59E0B" stroke-opacity="0.34"/>
+  <rect x="880" y="342" width="240" height="160" rx="24" fill="#341A26" stroke="#FB7185" stroke-opacity="0.44"/>
+  <rect x="620" y="587" width="190" height="95" rx="22" fill="#182D44" stroke="#34D399" stroke-opacity="0.3"/>
+  <rect x="850" y="587" width="280" height="95" rx="22" fill="#20354A" stroke="#34D399" stroke-opacity="0.3"/>
+  <rect x="40" y="602" width="160" height="80" rx="22" fill="#1C324D" stroke="#E2E8F0" stroke-opacity="0.16"/>
+
+  <g fill="#1F3148">
+    <rect x="132" y="127" width="56" height="30" rx="8"/>
+    <rect x="208" y="127" width="56" height="30" rx="8"/>
+    <rect x="132" y="178" width="56" height="30" rx="8"/>
+    <rect x="208" y="178" width="56" height="30" rx="8"/>
+    <rect x="424" y="127" width="56" height="30" rx="8"/>
+    <rect x="500" y="127" width="56" height="30" rx="8"/>
+    <rect x="424" y="178" width="56" height="30" rx="8"/>
+    <rect x="500" y="178" width="56" height="30" rx="8"/>
+    <rect x="112" y="382" width="52" height="30" rx="8"/>
+    <rect x="178" y="382" width="52" height="30" rx="8"/>
+    <rect x="112" y="434" width="52" height="30" rx="8"/>
+    <rect x="178" y="434" width="52" height="30" rx="8"/>
+    <rect x="384" y="378" width="68" height="34" rx="8"/>
+    <rect x="480" y="378" width="68" height="34" rx="8"/>
+    <rect x="384" y="434" width="68" height="34" rx="8"/>
+    <rect x="480" y="434" width="68" height="34" rx="8"/>
+    <rect x="710" y="388" width="82" height="44" rx="12"/>
+    <rect x="946" y="128" width="96" height="58" rx="12"/>
+    <rect x="948" y="372" width="112" height="48" rx="12"/>
+    <rect x="680" y="612" width="68" height="28" rx="10"/>
+    <rect x="915" y="612" width="68" height="28" rx="10"/>
+    <rect x="1005" y="612" width="68" height="28" rx="10"/>
+  </g>
+
+  <g fill="#D7E6F5" fill-opacity="0.92" font-family="Verdana, sans-serif" font-size="20" font-weight="700">
+    <text x="94" y="110">規劃工位</text>
+    <text x="384" y="110">研究工位</text>
+    <text x="930" y="110">會議區</text>
+    <text x="94" y="370">記憶工位</text>
+    <text x="350" y="370">工具工位</text>
+    <text x="694" y="370">審查工位</text>
+    <text x="912" y="370">事件處理台</text>
+    <text x="658" y="616">協作中樞</text>
+    <text x="886" y="616">休息區</text>
+    <text x="76" y="634">入口區</text>
+  </g>
+</svg>

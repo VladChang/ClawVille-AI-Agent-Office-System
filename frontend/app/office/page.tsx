@@ -4,8 +4,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge, Card } from '@/components/ui';
 import { DataHealthBanner, EmptyState } from '@/components/dataState';
 import { getAgentLabel, getAgentStatusLabel, getEventLevelLabel, workforceLabels } from '@/lib/presentation';
-import { defaultOfficeMap, getOfficeZoneCenter } from '@/lib/officeMap';
+import { getOfficeAnchorPoints, getOfficeZoneCenter } from '@/lib/officeMap';
 import { createOfficeSimulation, getOfficeSceneZones, type OfficeActorState } from '@/lib/officeSimulation';
+import { resolveOfficePortraitAsset, resolveOfficeTheme } from '@/lib/officeTheme';
 import { useDashboardStore } from '@/store/dashboardStore';
 
 const stateMeta: Record<OfficeActorState, { label: string; icon: string; tone: string }> = {
@@ -16,8 +17,10 @@ const stateMeta: Record<OfficeActorState, { label: string; icon: string; tone: s
   incident: { label: '事件中', icon: '🚨', tone: 'border-rose-500/70 bg-rose-500/10 text-rose-100' }
 };
 
-const officeMap = defaultOfficeMap;
+const officeTheme = resolveOfficeTheme();
+const officeMap = officeTheme.map;
 const sceneZones = getOfficeSceneZones(officeMap);
+const officeAnchors = getOfficeAnchorPoints(officeMap);
 
 function toPercentX(x: number): string {
   return `${(x / officeMap.width) * 100}%`;
@@ -27,8 +30,8 @@ function toPercentY(y: number): string {
   return `${(y / officeMap.height) * 100}%`;
 }
 
-function buildTokenBackground(accent: string): string {
-  return `radial-gradient(circle at 28% 24%, rgba(255,255,255,0.95) 0%, ${accent} 42%, rgba(15,23,42,0.96) 100%)`;
+function toSvgPoints(points: { x: number; y: number }[]): string {
+  return points.map((point) => `${point.x},${point.y}`).join(' ');
 }
 
 export default function OfficePage() {
@@ -62,6 +65,7 @@ export default function OfficePage() {
   }
   const latestWorldRef = useRef({ agents, tasks, events });
   const [hoveredActorId, setHoveredActorId] = useState<string | null>(null);
+  const [debugOverlay, setDebugOverlay] = useState(officeTheme.debugOverlayDefault);
   const [scene, setScene] = useState(() => simulationRef.current!.tick(0));
 
   useEffect(() => {
@@ -87,6 +91,7 @@ export default function OfficePage() {
   }, []);
 
   const hoveredActor = scene.actors.find((actor) => actor.agentId === hoveredActorId) ?? null;
+  const agentsById = useMemo(() => new Map(agents.map((agent) => [agent.id, agent])), [agents]);
 
   const activitySignals = useMemo(() => {
     const eventSignals = events
@@ -149,7 +154,21 @@ export default function OfficePage() {
       <DataHealthBanner error={error} notice={notice} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
 
       <Card title="辦公室地圖">
-        <div className="mb-2 text-xs text-slate-400">{workforceLabels.officeHint}</div>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="text-xs text-slate-400">
+            {workforceLabels.officeHint}
+            <div className="mt-1 text-[11px] text-slate-500">
+              正式展示模式預設隱藏地圖輔助標記；需要校正路線時再開啟偵錯覆蓋。
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setDebugOverlay((current) => !current)}
+            className="rounded-full border border-slate-700 bg-slate-950/80 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:border-cyan-400/70 hover:text-cyan-100"
+          >
+            {debugOverlay ? '隱藏地圖偵錯' : '顯示地圖偵錯'}
+          </button>
+        </div>
         {agents.length === 0 ? (
           <EmptyState
             title={workforceLabels.officeEmpty}
@@ -164,23 +183,71 @@ export default function OfficePage() {
                 className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover"
               />
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.08),transparent_38%),radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.08),transparent_30%)]" />
+              {debugOverlay && (
+                <svg
+                  viewBox={`0 0 ${officeMap.width} ${officeMap.height}`}
+                  className="pointer-events-none absolute inset-0 h-full w-full"
+                  aria-hidden="true"
+                >
+                  {officeMap.walkableAreas.map((polygon, index) => (
+                    <polygon
+                      key={`walkable-${index}`}
+                      points={toSvgPoints(polygon)}
+                      fill="rgba(34, 211, 238, 0.11)"
+                      stroke="rgba(103, 232, 249, 0.42)"
+                      strokeWidth="2"
+                    />
+                  ))}
+                  {officeMap.obstacles.map((polygon, index) => (
+                    <polygon
+                      key={`obstacle-${index}`}
+                      points={toSvgPoints(polygon)}
+                      fill="rgba(251, 113, 133, 0.16)"
+                      stroke="rgba(253, 164, 175, 0.55)"
+                      strokeWidth="2"
+                    />
+                  ))}
+                  {officeMap.zones.map((zoneItem) => (
+                    <polygon
+                      key={zoneItem.id}
+                      points={toSvgPoints(zoneItem.points)}
+                      fill="rgba(250, 204, 21, 0.05)"
+                      stroke="rgba(250, 204, 21, 0.6)"
+                      strokeDasharray="10 8"
+                      strokeWidth="2"
+                    />
+                  ))}
+                  {officeAnchors.map((anchor) => (
+                    <g key={anchor.id}>
+                      <circle cx={anchor.point.x} cy={anchor.point.y} r="7" fill="rgba(248, 250, 252, 0.9)" />
+                      <circle cx={anchor.point.x} cy={anchor.point.y} r="16" fill="rgba(14, 165, 233, 0.14)" />
+                    </g>
+                  ))}
+                </svg>
+              )}
 
-              {sceneZones.map((zoneItem) => {
-                const center = getOfficeZoneCenter(zoneItem.id, officeMap);
-                return (
-                  <div
-                    key={zoneItem.id}
-                    className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-slate-700/80 bg-slate-950/80 px-3 py-1 text-[11px] font-medium text-slate-300 backdrop-blur"
-                    style={{ left: toPercentX(center.x), top: toPercentY(center.y) }}
-                  >
-                    {zoneItem.label}
-                  </div>
-                );
-              })}
+              {debugOverlay &&
+                sceneZones.map((zoneItem) => {
+                  const center = getOfficeZoneCenter(zoneItem.id, officeMap);
+                  return (
+                    <div
+                      key={zoneItem.id}
+                      className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full border border-slate-700/80 bg-slate-950/85 px-3 py-1 text-[11px] font-medium text-slate-200 backdrop-blur"
+                      style={{ left: toPercentX(center.x), top: toPercentY(center.y) }}
+                    >
+                      {zoneItem.label}
+                    </div>
+                  );
+                })}
 
               {scene.actors.map((actor) => {
                 const meta = stateMeta[actor.state];
                 const selected = selectedAgentId === actor.agentId;
+                const portrait = resolveOfficePortraitAsset(
+                  agentsById.get(actor.agentId) ?? { role: actor.role, status: actor.status },
+                  officeTheme
+                );
+                const zIndex = selected ? 5200 : hoveredActorId === actor.agentId ? 4600 : 1000 + Math.round(actor.y);
 
                 return (
                   <button
@@ -189,17 +256,17 @@ export default function OfficePage() {
                     onClick={() => selectAgent(actor.agentId)}
                     onMouseEnter={() => setHoveredActorId(actor.agentId)}
                     onMouseLeave={() => setHoveredActorId((current) => (current === actor.agentId ? null : current))}
-                    className={`absolute z-10 flex w-20 -translate-x-1/2 -translate-y-1/2 flex-col items-center transition-transform duration-150 ${
+                    className={`absolute flex w-24 -translate-x-1/2 -translate-y-[76%] flex-col items-center transition-transform duration-150 ${
                       selected ? 'scale-105' : 'hover:scale-105'
                     }`}
-                    style={{ left: toPercentX(actor.x), top: toPercentY(actor.y) }}
+                    style={{ left: toPercentX(actor.x), top: toPercentY(actor.y), zIndex }}
                   >
                     <span
-                      className={`absolute inset-2 rounded-full blur-md ${selected ? 'opacity-90' : 'opacity-55'}`}
+                      className={`absolute bottom-4 h-4 w-14 rounded-full blur-md ${selected ? 'opacity-75' : 'opacity-45'}`}
                       style={{ backgroundColor: actor.accent }}
                     />
                     <span
-                      className={`relative flex h-12 w-12 items-center justify-center rounded-full border-2 text-sm font-black text-white shadow-xl ${
+                      className={`relative flex h-[4.8rem] w-[3.8rem] items-end justify-center overflow-hidden rounded-[1.3rem] border text-sm font-black text-white shadow-[0_18px_42px_rgba(15,23,42,0.45)] backdrop-blur ${
                         actor.state === 'working'
                           ? 'animate-agent-pulse'
                           : actor.state === 'incident'
@@ -209,17 +276,33 @@ export default function OfficePage() {
                               : ''
                       } ${selected ? 'ring-2 ring-cyan-300/80 ring-offset-2 ring-offset-slate-950' : ''}`}
                       style={{
-                        background: buildTokenBackground(actor.accent),
-                        borderColor: selected ? '#67e8f9' : 'rgba(255,255,255,0.35)'
+                        background: `linear-gradient(180deg, rgba(15,23,42,0.22) 0%, rgba(15,23,42,0.68) 100%), radial-gradient(circle at 50% 18%, ${actor.accent} 0%, rgba(15,23,42,0.2) 45%, rgba(2,6,23,0.88) 100%)`,
+                        borderColor: selected ? '#67e8f9' : 'rgba(255,255,255,0.22)'
                       }}
                     >
-                      {actor.initials}
+                      <span
+                        className="absolute inset-x-1 bottom-1 h-5 rounded-full opacity-70 blur-md"
+                        style={{ backgroundColor: actor.accent }}
+                      />
+                      <img
+                        src={portrait.image}
+                        alt={`${actor.label} 角色圖像`}
+                        className="relative z-10 h-[4.4rem] w-[3.5rem] object-contain"
+                        style={{ transform: `translateY(${portrait.offsetY}px) scale(${portrait.scale})` }}
+                      />
                     </span>
                     <span className="absolute -right-1 top-0 rounded-full border border-slate-700/80 bg-slate-950/95 px-1.5 py-0.5 text-[10px]">
                       {meta.icon}
                     </span>
-                    <span className="mt-1 max-w-[5.6rem] truncate rounded-full border border-slate-700/70 bg-slate-950/85 px-2 py-0.5 text-[10px] font-medium text-slate-100 shadow">
+                    <span
+                      className="absolute -left-1 top-1 h-2.5 w-2.5 rounded-full border border-slate-950/80"
+                      style={{ backgroundColor: actor.accent }}
+                    />
+                    <span className="mt-1 max-w-[6rem] truncate rounded-full border border-slate-700/70 bg-slate-950/88 px-2 py-0.5 text-[10px] font-medium text-slate-100 shadow">
                       {actor.label}
+                    </span>
+                    <span className="mt-1 rounded-full border border-slate-800/80 bg-slate-900/75 px-2 py-0.5 text-[10px] text-slate-300">
+                      {meta.label}
                     </span>
                   </button>
                 );
@@ -227,10 +310,11 @@ export default function OfficePage() {
 
               {hoveredActor && (
                 <div
-                  className="pointer-events-none absolute z-20 w-60 rounded-2xl border border-slate-700/90 bg-slate-950/92 p-3 text-xs shadow-2xl backdrop-blur"
+                  className="pointer-events-none absolute w-60 rounded-2xl border border-slate-700/90 bg-slate-950/92 p-3 text-xs shadow-2xl backdrop-blur"
                   style={{
                     left: toPercentX(hoveredActor.x),
                     top: toPercentY(hoveredActor.y),
+                    zIndex: 7000,
                     transform: `translate(${hoveredActor.x > officeMap.width * 0.82 ? '-90%' : '-50%'}, ${
                       hoveredActor.y < 130 ? '8%' : '-110%'
                     })`

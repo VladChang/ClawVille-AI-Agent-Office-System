@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "bootstrap": "bash ./scripts/bootstrap.sh",
-    "stop": "bash ./scripts/stop.sh"
+    "stop": "bash ./scripts/stop.sh",
+    "verify:openclaw": "node ./scripts/verify-openclaw-upstream.mjs"
   }
 }

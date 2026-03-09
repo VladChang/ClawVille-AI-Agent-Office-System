@@ -92,6 +92,33 @@ npm run stop
 - ClawVille backend 會連到 adapter；adapter 再把 OpenClaw internal agent/task/event/state 正規化成 shared runtime contract
 - 仍待補 production hardening：upstream-specific endpoint conventions、更完整的 auth negotiation，以及 push/event-stream transport
 
+### Office 展示資產
+
+Office 視圖目前已改成「背景圖 + 角色圖像 + pathfinding scene」模式，背景圖不再硬寫死在頁面元件中。
+
+可用的 frontend env：
+- `NEXT_PUBLIC_OFFICE_THEME`：Office 視覺主題 id，預設 `studio`
+- `NEXT_PUBLIC_OFFICE_BACKGROUND_IMAGE`：覆蓋 Office 背景圖路徑
+- `NEXT_PUBLIC_OFFICE_DEBUG_OVERLAY_DEFAULT`：是否預設顯示 walkable / obstacles / zones / anchor points 偵錯覆蓋
+
+更換背景圖時不需要重寫移動邏輯；若背景構圖改變，則需要同步重標 `frontend/lib/officeMap.ts` 內的 walkable / obstacles / zones / anchors。
+
+### 驗證真實 OpenClaw upstream
+
+在 `RUNTIME_SOURCE=openclaw`、且已關閉 fallback/fixture 的部署上，可執行：
+
+```bash
+npm run verify:openclaw
+```
+
+這個驗證會檢查：
+- `/api/runtime/status` 必須是 `mode=openclaw`
+- `dataSource=openclaw_upstream`
+- `verified=true`
+- `/api/overview`、`/api/agents`、`/api/tasks`、`/api/events` 都能正確回應
+
+如果 upstream 尚未真正接通，這個指令會直接失敗，不會把 fixture 或 mock 誤判成 real upstream。
+
 ## 架構摘要
 
 ```text

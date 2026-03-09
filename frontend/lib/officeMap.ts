@@ -124,64 +124,68 @@ const zones: OfficeZone[] = [
   southHallZone
 ];
 
-export const defaultOfficeMap: OfficeMap = {
-  backgroundImage: '/office/office-rpg-map.svg',
-  width: 1200,
-  height: 720,
-  walkableAreas: [
-    plannerZone.points,
-    researchZone.points,
-    meetingZone.points,
-    archiveZone.points,
-    workshopZone.points,
-    reviewZone.points,
-    incidentZone.points,
-    loungeZone.points,
-    breakZone.points,
-    entranceZone.points,
-    northHallZone.points,
-    southHallZone.points,
-    rect(270, 80, 60, 600),
-    rect(610, 80, 60, 600),
-    rect(830, 80, 60, 600),
-    rect(95, 560, 70, 120)
-  ],
-  obstacles: [
-    rect(130, 125, 55, 28),
-    rect(205, 125, 55, 28),
-    rect(130, 175, 55, 28),
-    rect(205, 175, 55, 28),
-    rect(420, 125, 55, 28),
-    rect(495, 125, 55, 28),
-    rect(420, 175, 55, 28),
-    rect(495, 175, 55, 28),
-    rect(945, 125, 95, 55),
-    rect(110, 380, 50, 28),
-    rect(175, 380, 50, 28),
-    rect(110, 430, 50, 28),
-    rect(175, 430, 50, 28),
-    rect(380, 375, 65, 32),
-    rect(475, 375, 65, 32),
-    rect(380, 430, 65, 32),
-    rect(475, 430, 65, 32),
-    rect(710, 385, 80, 42),
-    rect(945, 370, 110, 44),
-    rect(680, 610, 65, 26),
-    rect(915, 610, 65, 26),
-    rect(1005, 610, 65, 26)
-  ],
-  zones,
-  anchorPoints: [
-    { id: 'entry_spawn', label: '入口生成點', point: { x: 120, y: 645 }, zoneId: entranceZone.id },
-    { id: 'north_west', label: '北側走道西段', point: { x: 180, y: 290 }, zoneId: northHallZone.id },
-    { id: 'north_mid', label: '北側走道中央', point: { x: 550, y: 290 }, zoneId: northHallZone.id },
-    { id: 'north_east', label: '北側走道東段', point: { x: 930, y: 290 }, zoneId: northHallZone.id },
-    { id: 'south_west', label: '南側走道西段', point: { x: 180, y: 550 }, zoneId: southHallZone.id },
-    { id: 'south_mid', label: '南側走道中央', point: { x: 550, y: 550 }, zoneId: southHallZone.id },
-    { id: 'south_east', label: '南側走道東段', point: { x: 930, y: 550 }, zoneId: southHallZone.id },
-    { id: 'lounge_hub', label: '協作節點', point: { x: 720, y: 625 }, zoneId: loungeZone.id }
-  ]
-};
+export function createOfficeMap(backgroundImage: string): OfficeMap {
+  return {
+    backgroundImage,
+    width: 1200,
+    height: 720,
+    walkableAreas: [
+      plannerZone.points,
+      researchZone.points,
+      meetingZone.points,
+      archiveZone.points,
+      workshopZone.points,
+      reviewZone.points,
+      incidentZone.points,
+      loungeZone.points,
+      breakZone.points,
+      entranceZone.points,
+      northHallZone.points,
+      southHallZone.points,
+      rect(270, 80, 60, 600),
+      rect(610, 80, 60, 600),
+      rect(830, 80, 60, 600),
+      rect(95, 560, 70, 120)
+    ],
+    obstacles: [
+      rect(130, 125, 55, 28),
+      rect(205, 125, 55, 28),
+      rect(130, 175, 55, 28),
+      rect(205, 175, 55, 28),
+      rect(420, 125, 55, 28),
+      rect(495, 125, 55, 28),
+      rect(420, 175, 55, 28),
+      rect(495, 175, 55, 28),
+      rect(945, 125, 95, 55),
+      rect(110, 380, 50, 28),
+      rect(175, 380, 50, 28),
+      rect(110, 430, 50, 28),
+      rect(175, 430, 50, 28),
+      rect(380, 375, 65, 32),
+      rect(475, 375, 65, 32),
+      rect(380, 430, 65, 32),
+      rect(475, 430, 65, 32),
+      rect(710, 385, 80, 42),
+      rect(945, 370, 110, 44),
+      rect(680, 610, 65, 26),
+      rect(915, 610, 65, 26),
+      rect(1005, 610, 65, 26)
+    ],
+    zones,
+    anchorPoints: [
+      { id: 'entry_spawn', label: '入口生成點', point: { x: 120, y: 645 }, zoneId: entranceZone.id },
+      { id: 'north_west', label: '北側走道西段', point: { x: 180, y: 290 }, zoneId: northHallZone.id },
+      { id: 'north_mid', label: '北側走道中央', point: { x: 550, y: 290 }, zoneId: northHallZone.id },
+      { id: 'north_east', label: '北側走道東段', point: { x: 930, y: 290 }, zoneId: northHallZone.id },
+      { id: 'south_west', label: '南側走道西段', point: { x: 180, y: 550 }, zoneId: southHallZone.id },
+      { id: 'south_mid', label: '南側走道中央', point: { x: 550, y: 550 }, zoneId: southHallZone.id },
+      { id: 'south_east', label: '南側走道東段', point: { x: 930, y: 550 }, zoneId: southHallZone.id },
+      { id: 'lounge_hub', label: '協作節點', point: { x: 720, y: 625 }, zoneId: loungeZone.id }
+    ]
+  };
+}
+
+export const defaultOfficeMap: OfficeMap = createOfficeMap('/office/office-ai-showcase.svg');
 
 const deskZoneIds = [
   plannerZone.id,

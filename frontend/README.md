@@ -30,6 +30,9 @@ Default app URL: `http://localhost:3000`
 - `NEXT_PUBLIC_OPERATOR_ID` (default `demo-operator`)
 - `NEXT_PUBLIC_OPERATOR_ROLE` (`viewer` | `operator` | `admin`, default `operator`)
 - `NEXT_PUBLIC_USE_MOCK_API` (`false` by default, legacy compatibility flag)
+- `NEXT_PUBLIC_OFFICE_THEME` (default `studio`)
+- `NEXT_PUBLIC_OFFICE_BACKGROUND_IMAGE` (override Office background image asset)
+- `NEXT_PUBLIC_OFFICE_DEBUG_OVERLAY_DEFAULT` (`true`/`false`, default hidden)
 
 When `NEXT_PUBLIC_RUNTIME_MODE=real`, runtime failures are surfaced as strict-mode errors in dashboard state so operators can immediately see configuration/runtime issues.
 
@@ -47,10 +50,10 @@ Covers frontend logic for schema normalization and analytics metric calculations
 npm run build
 ```
 
-## Office View (Sprint 3)
+## Office View
 
 - Route: `/office`
-- Realtime room map + agent cards from shared dashboard state
-- Occupancy chips per room
-- Collaboration signal list and animated flow lines to Collaboration Hub
-- Click-to-select agents stays in sync with drawer and Agents page highlight
+- Background image + portrait tokens rendered on top of the office scene
+- Pathfinding-driven movement with walkable areas, obstacles, zones, and anchor points
+- Debug overlay toggle for zones, walkable map, obstacles, and anchor points
+- Click-to-select staff stays in sync with drawer and Staff page highlight
