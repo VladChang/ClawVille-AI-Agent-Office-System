@@ -11,6 +11,7 @@ export interface OpenClawRuntimeClient {
   listAgents(): Promise<RuntimeResult<Agent[]>>;
   getAgent(agentId: string): Promise<RuntimeResult<Agent | null>>;
   controlAgent(action: OpenClawControlAgentAction, agentId: string): Promise<RuntimeResult<Agent | null>>;
+  updateAgentDisplayName(agentId: string, displayName: string | null): Promise<RuntimeResult<Agent | null>>;
   addAgent(payload: Pick<Agent, 'name' | 'role'> & Partial<Pick<Agent, 'status'>>): Promise<RuntimeResult<Agent>>;
 
   listTasks(): Promise<RuntimeResult<Task[]>>;
@@ -74,6 +75,7 @@ function mapAgent(payload: unknown): Agent | null {
   return {
     id,
     name,
+    displayName: asOptionalString(record.displayName),
     role,
     status: normalizeAgentStatus(record.status),
     updatedAt: asString(record.updatedAt) ?? new Date(0).toISOString()
@@ -225,6 +227,14 @@ export class OpenClawTransportRuntimeClient implements OpenClawRuntimeClient {
     }
   }
 
+  async updateAgentDisplayName(agentId: string, displayName: string | null): Promise<RuntimeResult<Agent | null>> {
+    try {
+      return this.success(this.mappedAgentOrNull(await this.transport.updateAgentDisplayName(agentId, displayName)));
+    } catch (error) {
+      return this.unavailable(error, 'updateAgentDisplayName');
+    }
+  }
+
   async addAgent(payload: Pick<Agent, 'name' | 'role'> & Partial<Pick<Agent, 'status'>>): Promise<RuntimeResult<Agent>> {
     try {
       const created = this.mappedAgentOrNull(await this.transport.addAgent(payload));
@@ -318,6 +328,10 @@ export class OpenClawStubRuntimeClient implements OpenClawRuntimeClient {
 
   async controlAgent(): Promise<RuntimeResult<Agent | null>> {
     return this.notConfigured('controlAgent');
+  }
+
+  async updateAgentDisplayName(): Promise<RuntimeResult<Agent | null>> {
+    return this.notConfigured('updateAgentDisplayName');
   }
 
   async addAgent(): Promise<RuntimeResult<Agent>> {
@@ -447,6 +461,15 @@ export class OpenClawRuntimeSource implements RuntimeSource {
       'resumeAgent',
       () => this.client.controlAgent('resume', agentId),
       async () => (await this.fallback.resumeAgent(agentId)) ?? null
+    );
+    return value ?? undefined;
+  }
+
+  async updateAgentDisplayName(agentId: string, displayName: string | null): Promise<Agent | undefined> {
+    const value = await this.withFallback(
+      'updateAgentDisplayName',
+      () => this.client.updateAgentDisplayName(agentId, displayName),
+      async () => (await this.fallback.updateAgentDisplayName(agentId, displayName)) ?? null
     );
     return value ?? undefined;
   }

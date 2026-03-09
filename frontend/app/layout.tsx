@@ -6,13 +6,13 @@ import { AgentDetailDrawer } from '@/components/agentDetailDrawer';
 import { AppProviders } from '@/components/providers';
 
 export const metadata: Metadata = {
-  title: 'ClawVille Office',
-  description: 'AI Agent Office System dashboard'
+  title: 'ClawVille 控制台',
+  description: 'AI Agent 辦公室系統儀表板'
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="zh-Hant">
       <body>
         <AppProviders>
           <div className="flex min-h-screen">

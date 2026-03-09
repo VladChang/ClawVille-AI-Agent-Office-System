@@ -18,6 +18,7 @@ export interface OpenClawRuntimeTransport {
   listAgents(): Promise<unknown[]>;
   getAgent(agentId: string): Promise<unknown | null>;
   controlAgent(action: 'pause' | 'resume', agentId: string): Promise<unknown | null>;
+  updateAgentDisplayName(agentId: string, displayName: string | null): Promise<unknown | null>;
   addAgent(payload: { name: string; role: string; status?: AgentStatus }): Promise<unknown>;
 
   listTasks(): Promise<unknown[]>;
@@ -140,6 +141,27 @@ export class FixtureRuntimeTransport implements OpenClawRuntimeTransport {
     return deepClone(record);
   }
 
+  async updateAgentDisplayName(agentId: string, displayName: string | null): Promise<unknown | null> {
+    const target = this.state.agents.find((item) => asRecord(item)?.id === agentId);
+    const record = asRecord(target);
+    if (!record) return null;
+
+    record.displayName = typeof displayName === 'string' && displayName.trim().length > 0 ? displayName.trim() : undefined;
+    record.updatedAt = this.nowIso();
+
+    const event = {
+      id: `oc-event-${Date.now()}`,
+      type: 'system',
+      message: `已透過 runtime transport 更新 Agent 顯示別名：${String(record.name ?? agentId)}`,
+      timestamp: this.nowIso(),
+      metadata: { agentId, displayName: record.displayName }
+    };
+
+    this.state.events.unshift(event);
+    this.emit(event);
+    return deepClone(record);
+  }
+
   async addAgent(payload: { name: string; role: string; status?: AgentStatus }): Promise<unknown> {
     const agent = {
       id: `oc-agent-${Date.now()}`,
@@ -247,7 +269,7 @@ export class FixtureRuntimeTransport implements OpenClawRuntimeTransport {
 
 interface HttpOpenClawRuntimeTransportOptions {
   endpoint: string;
-  apiKey: string;
+  apiKey?: string;
   authHeaderName?: string;
   authScheme?: string;
   snapshotPath?: string;
@@ -262,6 +284,17 @@ interface HttpOpenClawRuntimeTransportOptions {
 function parsePositiveInteger(value: string | undefined, fallback: number): number {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function readFirstEnv(...names: string[]): string | undefined {
+  for (const name of names) {
+    const value = process.env[name]?.trim();
+    if (value) {
+      return value;
+    }
+  }
+
+  return undefined;
 }
 
 function trimSlashes(value: string): string {
@@ -299,7 +332,7 @@ function extractErrorMessage(payload: unknown, statusCode: number): string {
 
 export class HttpOpenClawRuntimeTransport implements OpenClawRuntimeTransport {
   private readonly endpoint: string;
-  private readonly apiKey: string;
+  private readonly apiKey?: string;
   private readonly authHeaderName: string;
   private readonly authScheme: string;
   private readonly snapshotPath: string;
@@ -344,8 +377,10 @@ export class HttpOpenClawRuntimeTransport implements OpenClawRuntimeTransport {
       Accept: 'application/json'
     };
 
-    const authValue = this.authScheme.length > 0 ? `${this.authScheme} ${this.apiKey}` : this.apiKey;
-    headers[this.authHeaderName] = authValue;
+    if (this.apiKey && this.apiKey.trim().length > 0) {
+      const authValue = this.authScheme.length > 0 ? `${this.authScheme} ${this.apiKey}` : this.apiKey;
+      headers[this.authHeaderName] = authValue;
+    }
 
     if (body !== undefined) {
       headers['Content-Type'] = 'application/json';
@@ -465,6 +500,19 @@ export class HttpOpenClawRuntimeTransport implements OpenClawRuntimeTransport {
   async controlAgent(action: 'pause' | 'resume', agentId: string): Promise<unknown | null> {
     const controlPath = joinPath(this.agentsPath, encodeURIComponent(agentId), action);
     const payload = await this.request(controlPath, { method: 'POST' }, { allowNotFound: true });
+    return payload === null ? null : (asRecord(payload)?.agent ?? payload);
+  }
+
+  async updateAgentDisplayName(agentId: string, displayName: string | null): Promise<unknown | null> {
+    const aliasPath = joinPath(this.agentsPath, encodeURIComponent(agentId), 'display-name');
+    const payload = await this.request(
+      aliasPath,
+      {
+        method: 'PATCH',
+        body: { displayName }
+      },
+      { allowNotFound: true }
+    );
     return payload === null ? null : (asRecord(payload)?.agent ?? payload);
   }
 
@@ -600,22 +648,22 @@ export function createOpenClawTransportFromEnv(): OpenClawRuntimeTransport | nul
   const fixture = FixtureRuntimeTransport.fromEnv();
   if (fixture) return fixture;
 
-  const endpoint = process.env.OPENCLAW_RUNTIME_ENDPOINT?.trim();
-  const apiKey = process.env.OPENCLAW_RUNTIME_API_KEY?.trim();
+  const endpoint = readFirstEnv('OPENCLAW_ADAPTER_ENDPOINT', 'OPENCLAW_RUNTIME_ENDPOINT');
+  const apiKey = readFirstEnv('OPENCLAW_ADAPTER_API_KEY', 'OPENCLAW_RUNTIME_API_KEY');
 
-  if (!endpoint || !apiKey) {
+  if (!endpoint) {
     return null;
   }
 
   return new HttpOpenClawRuntimeTransport({
     endpoint,
     apiKey,
-    authHeaderName: process.env.OPENCLAW_RUNTIME_AUTH_HEADER?.trim() || undefined,
-    authScheme: process.env.OPENCLAW_RUNTIME_AUTH_SCHEME?.trim() ?? 'Bearer',
-    snapshotPath: process.env.OPENCLAW_RUNTIME_SNAPSHOT_PATH?.trim() || undefined,
-    agentsPath: process.env.OPENCLAW_RUNTIME_AGENTS_PATH?.trim() || undefined,
-    tasksPath: process.env.OPENCLAW_RUNTIME_TASKS_PATH?.trim() || undefined,
-    eventsPath: process.env.OPENCLAW_RUNTIME_EVENTS_PATH?.trim() || undefined,
+    authHeaderName: readFirstEnv('OPENCLAW_ADAPTER_AUTH_HEADER', 'OPENCLAW_RUNTIME_AUTH_HEADER'),
+    authScheme: readFirstEnv('OPENCLAW_ADAPTER_AUTH_SCHEME', 'OPENCLAW_RUNTIME_AUTH_SCHEME') ?? 'Bearer',
+    snapshotPath: readFirstEnv('OPENCLAW_ADAPTER_SNAPSHOT_PATH', 'OPENCLAW_RUNTIME_SNAPSHOT_PATH'),
+    agentsPath: readFirstEnv('OPENCLAW_ADAPTER_AGENTS_PATH', 'OPENCLAW_RUNTIME_AGENTS_PATH'),
+    tasksPath: readFirstEnv('OPENCLAW_ADAPTER_TASKS_PATH', 'OPENCLAW_RUNTIME_TASKS_PATH'),
+    eventsPath: readFirstEnv('OPENCLAW_ADAPTER_EVENTS_PATH', 'OPENCLAW_RUNTIME_EVENTS_PATH'),
     pollMs: parsePositiveInteger(process.env.OPENCLAW_RUNTIME_POLL_MS, 5000),
     pollMaxBackoffMs: parsePositiveInteger(process.env.OPENCLAW_RUNTIME_POLL_MAX_BACKOFF_MS, 30000),
     requestTimeoutMs: parsePositiveInteger(process.env.OPENCLAW_RUNTIME_REQUEST_TIMEOUT_MS, 5000)

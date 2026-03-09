@@ -1,5 +1,6 @@
 'use client';
 
+import { getConnectionStatusLabel } from '@/lib/presentation';
 import { useDashboardStore } from '@/store/dashboardStore';
 
 export function SummaryBar() {
@@ -13,10 +14,10 @@ export function SummaryBar() {
 
   return (
     <header className="grid grid-cols-2 gap-3 border-b border-slate-800 bg-slate-900/60 p-4 md:grid-cols-5">
-      <Stat label="Agents" value={agentCount} />
-      <Stat label="Active Agents" value={activeAgentCount} />
-      <Stat label="Blocked Tasks" value={blockedTaskCount} />
-      <Stat label="Events" value={eventCount} />
+      <Stat label="代理人總數" value={agentCount} />
+      <Stat label="活躍代理人" value={activeAgentCount} />
+      <Stat label="阻塞任務" value={blockedTaskCount} />
+      <Stat label="事件數" value={eventCount} />
       <StatusStat status={connectionStatus} />
     </header>
   );
@@ -43,8 +44,8 @@ function StatusStat({ status }: { status: 'idle' | 'connecting' | 'connected' | 
 
   return (
     <div className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2">
-      <p className="text-xs text-slate-400">Realtime</p>
-      <p className={`text-lg font-semibold capitalize ${tone}`}>{status}</p>
+      <p className="text-xs text-slate-400">即時連線</p>
+      <p className={`text-lg font-semibold ${tone}`}>{getConnectionStatusLabel(status)}</p>
     </div>
   );
 }

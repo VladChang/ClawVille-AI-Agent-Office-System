@@ -4,12 +4,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const links = [
-  { href: '/', label: 'Overview' },
-  { href: '/agents', label: 'Agents' },
-  { href: '/tasks', label: 'Tasks' },
-  { href: '/events', label: 'Events' },
-  { href: '/analytics', label: 'Analytics' },
-  { href: '/office', label: 'Office' }
+  { href: '/', label: '總覽' },
+  { href: '/agents', label: '代理人' },
+  { href: '/tasks', label: '任務' },
+  { href: '/events', label: '事件' },
+  { href: '/analytics', label: '分析' },
+  { href: '/office', label: '辦公室' }
 ];
 
 export function Sidebar() {
@@ -17,7 +17,7 @@ export function Sidebar() {
 
   return (
     <aside className="w-56 shrink-0 border-r border-slate-800 bg-slate-900/80 p-4">
-      <p className="mb-6 text-sm font-semibold text-cyan-300">ClawVille Office</p>
+      <p className="mb-6 text-sm font-semibold text-cyan-300">ClawVille 控制台</p>
       <nav className="space-y-2">
         {links.map((link) => {
           const active = pathname === link.href;

@@ -55,9 +55,9 @@ export class MockStore {
   private agentStatusChanges: AgentStatusRecord[] = [];
 
   private agents: Agent[] = [
-    { id: 'a-1', name: 'Nova', role: 'Planner', status: 'busy', updatedAt: nowIso() },
-    { id: 'a-2', name: 'Echo', role: 'Implementer', status: 'idle', updatedAt: nowIso() },
-    { id: 'a-3', name: 'Rook', role: 'Reviewer', status: 'offline', updatedAt: nowIso() }
+    { id: 'a-1', name: 'Nova', displayName: '諾瓦', role: 'Planner', status: 'busy', updatedAt: nowIso() },
+    { id: 'a-2', name: 'Echo', displayName: '回聲', role: 'Implementer', status: 'idle', updatedAt: nowIso() },
+    { id: 'a-3', name: 'Rook', displayName: '洛克', role: 'Reviewer', status: 'offline', updatedAt: nowIso() }
   ];
 
   private tasks: Task[] = [
@@ -157,6 +157,7 @@ export class MockStore {
     const agent: Agent = {
       id: uuidv4(),
       name: payload.name,
+      displayName: undefined,
       role: payload.role,
       status: payload.status ?? 'idle',
       updatedAt: nowIso()
@@ -187,6 +188,20 @@ export class MockStore {
     agent.updatedAt = nowIso();
     this.recordAgentStatusChange(agent.id, previous, agent.status);
     const event = this.pushEvent('agent_resumed', `Agent resumed: ${agent.name}`, { agentId: agent.id });
+    this.emitState(event);
+    return agent;
+  }
+
+  updateAgentDisplayName(agentId: string, displayName: string | null): Agent | undefined {
+    const agent = this.getAgent(agentId);
+    if (!agent) return undefined;
+
+    agent.displayName = typeof displayName === 'string' && displayName.trim().length > 0 ? displayName.trim() : undefined;
+    agent.updatedAt = nowIso();
+    const event = this.pushEvent('system', `已更新 Agent 顯示別名：${agent.name}`, {
+      agentId: agent.id,
+      displayName: agent.displayName
+    });
     this.emitState(event);
     return agent;
   }

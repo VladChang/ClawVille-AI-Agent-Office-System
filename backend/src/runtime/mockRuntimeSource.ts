@@ -36,6 +36,10 @@ export class MockRuntimeSource implements RuntimeSource {
     return this.mockStore.resumeAgent(agentId);
   }
 
+  async updateAgentDisplayName(agentId: string, displayName: string | null) {
+    return this.mockStore.updateAgentDisplayName(agentId, displayName);
+  }
+
   async addTask(payload: Parameters<MockStore['addTask']>[0]) {
     return this.mockStore.addTask(payload);
   }

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Badge, Card } from '@/components/ui';
 import { DataHealthBanner, EmptyState, SkeletonLines } from '@/components/dataState';
 import { getDashboardDerivedMetrics } from '@/lib/analytics';
+import { getAgentLabel, getEventTypeLabel } from '@/lib/presentation';
 import { getEventLevelWeight } from '@/lib/schema';
 import { useDashboardStore } from '@/store/dashboardStore';
 import type { EventLevel } from '@/types/models';
@@ -24,10 +25,10 @@ interface MetricCard {
 }
 
 const timeRangeOptions: Array<{ value: TimeRangeFilter; label: string }> = [
-  { value: '1h', label: 'Last 1h' },
-  { value: '6h', label: 'Last 6h' },
-  { value: '24h', label: 'Last 24h' },
-  { value: 'all', label: 'All time' }
+  { value: '1h', label: '最近 1 小時' },
+  { value: '6h', label: '最近 6 小時' },
+  { value: '24h', label: '最近 24 小時' },
+  { value: 'all', label: '全部時間' }
 ];
 
 const speedOptions = [0.5, 1, 1.5, 2, 3, 4];
@@ -44,10 +45,10 @@ function getRangeDurationMs(timeRange: TimeRangeFilter): number | null {
 }
 
 function metricDeltaLabel(current: number, previous: number, suffix = ''): string {
-  if (current === previous) return `Flat (${current}${suffix})`;
+  if (current === previous) return `持平（${current}${suffix}）`;
   const diff = Math.abs(current - previous);
-  const direction = current > previous ? '↑' : '↓';
-  return `${direction} ${diff}${suffix} vs previous window`;
+  const direction = current > previous ? '上升' : '下降';
+  return `${direction} ${diff}${suffix}，相較前一個觀測窗`;
 }
 
 export default function AnalyticsPage() {
@@ -156,7 +157,7 @@ export default function AnalyticsPage() {
 
     const metricCards: MetricCard[] = [
       {
-        label: 'Error Rate',
+        label: '錯誤率',
         value: `${derived.errorRate.percentage}%`,
         sub: metricDeltaLabel(
           derived.errorRate.errorCount,
@@ -166,14 +167,14 @@ export default function AnalyticsPage() {
         priority: 1
       },
       {
-        label: 'Avg Wait Time',
-        value: `${derived.averageWaitTime.valueMinutes}m`,
-        sub: `${derived.averageWaitTime.taskCount} todo/blocked tasks`,
+        label: '平均等待時間',
+        value: `${derived.averageWaitTime.valueMinutes} 分`,
+        sub: `${derived.averageWaitTime.taskCount} 個待處理 / 阻塞任務`,
         tone: derived.averageWaitTime.valueMinutes >= 45 ? 'warn' : 'neutral',
         priority: 2
       },
       {
-        label: 'Task Completion',
+        label: '任務完成率',
         value: `${completionRate}%`,
         sub: metricDeltaLabel(
           completionRate,
@@ -186,7 +187,7 @@ export default function AnalyticsPage() {
         priority: 3
       },
       {
-        label: 'Agent Utilization',
+        label: 'Agent 利用率',
         value: `${utilization}%`,
         sub: metricDeltaLabel(
           utilization,
@@ -208,16 +209,16 @@ export default function AnalyticsPage() {
         priority: 4
       },
       {
-        label: 'Busiest Agent',
-        value: derived.busiestAgent?.name ?? 'N/A',
-        sub: derived.busiestAgent ? `${derived.busiestAgent.activeTaskCount} active tasks` : 'No active tasks',
+        label: '最忙碌 Agent',
+        value: derived.busiestAgent?.name ?? '暫無',
+        sub: derived.busiestAgent ? `${derived.busiestAgent.activeTaskCount} 個進行中任務` : '目前沒有進行中任務',
         tone: 'neutral',
         priority: 5
       },
       {
-        label: 'Mean Event Gap',
-        value: `${mtbeMinutes}m`,
-        sub: 'Average minutes between events',
+        label: '平均事件間隔',
+        value: `${mtbeMinutes} 分`,
+        sub: '事件之間的平均分鐘數',
         tone: 'neutral',
         priority: 6
       }
@@ -231,11 +232,14 @@ export default function AnalyticsPage() {
     const mentionsByAgent = new Map<string, number>();
     const pairWeight = new Map<string, number>();
 
-    const lowerAgentNames = agents.map((agent) => ({ id: agent.id, name: agent.name.toLowerCase() }));
+    const lowerAgentNames = agents.map((agent) => ({
+      id: agent.id,
+      names: [agent.name, agent.displayName ?? ''].map((name) => name.toLowerCase()).filter((name) => name.length > 0)
+    }));
 
     for (const event of filteredEvents) {
       const message = `${event.type} ${event.message}`.toLowerCase();
-      const mentioned = lowerAgentNames.filter((agent) => message.includes(agent.name)).map((agent) => agent.id);
+      const mentioned = lowerAgentNames.filter((agent) => agent.names.some((name) => message.includes(name))).map((agent) => agent.id);
 
       for (const id of mentioned) {
         mentionsByAgent.set(id, (mentionsByAgent.get(id) ?? 0) + 1);
@@ -278,8 +282,10 @@ export default function AnalyticsPage() {
       .slice(0, 6)
       .map(([key, score]) => {
         const [leftId, rightId] = key.split('::');
-        const left = agents.find((agent) => agent.id === leftId)?.name ?? leftId;
-        const right = agents.find((agent) => agent.id === rightId)?.name ?? rightId;
+        const leftAgent = agents.find((agent) => agent.id === leftId);
+        const rightAgent = agents.find((agent) => agent.id === rightId);
+        const left = leftAgent ? getAgentLabel(leftAgent) : leftId;
+        const right = rightAgent ? getAgentLabel(rightAgent) : rightId;
         return { id: key, left, right, score };
       });
 
@@ -294,7 +300,7 @@ export default function AnalyticsPage() {
 
         return {
           id: agent.id,
-          name: agent.name,
+          name: getAgentLabel(agent),
           activeLoad,
           incidentLoad,
           pairLoad,
@@ -313,7 +319,10 @@ export default function AnalyticsPage() {
       return { buckets: [], maxScore: 0 };
     }
 
-    const lowerAgentNames = agents.map((agent) => ({ id: agent.id, name: agent.name.toLowerCase() }));
+    const lowerAgentNames = agents.map((agent) => ({
+      id: agent.id,
+      names: [agent.name, agent.displayName ?? ''].map((name) => name.toLowerCase()).filter((name) => name.length > 0)
+    }));
     const firstTs = new Date(filteredEvents[0].timestamp).getTime();
     const lastTs = new Date(filteredEvents[filteredEvents.length - 1].timestamp).getTime();
     const spanMs = Math.max(1, lastTs - firstTs);
@@ -338,7 +347,7 @@ export default function AnalyticsPage() {
 
       const text = `${event.type} ${event.message}`.toLowerCase();
       const weight = getEventLevelWeight(event.level);
-      const mentioned = lowerAgentNames.filter((agent) => text.includes(agent.name));
+      const mentioned = lowerAgentNames.filter((agent) => agent.names.some((name) => text.includes(name)));
 
       if (mentioned.length > 0) {
         for (const agent of mentioned) {
@@ -357,7 +366,8 @@ export default function AnalyticsPage() {
       .slice(-12)
       .map((bucket) => {
         const leader = [...bucket.scoreByAgent.entries()].sort((a, b) => b[1] - a[1])[0];
-        const leaderName = leader ? agents.find((agent) => agent.id === leader[0])?.name ?? 'Unknown' : 'General';
+        const leaderAgent = leader ? agents.find((agent) => agent.id === leader[0]) : undefined;
+        const leaderName = leaderAgent ? getAgentLabel(leaderAgent) : leader ? leader[0] : '整體';
         return {
           key: `${bucket.start}`,
           label: new Date(bucket.start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -387,7 +397,10 @@ export default function AnalyticsPage() {
 
     const levelCounts: Record<EventLevel, number> = { info: 0, warning: 0, error: 0 };
     const typeCounts = new Map<string, number>();
-    const lowerAgentNames = agents.map((agent) => ({ id: agent.id, name: agent.name.toLowerCase() }));
+    const lowerAgentNames = agents.map((agent) => ({
+      id: agent.id,
+      names: [agent.name, agent.displayName ?? ''].map((name) => name.toLowerCase()).filter((name) => name.length > 0)
+    }));
     const mentionedAgents = new Set<string>();
 
     for (const event of windowEvents) {
@@ -396,7 +409,7 @@ export default function AnalyticsPage() {
 
       const text = `${event.type} ${event.message}`.toLowerCase();
       lowerAgentNames.forEach((agent) => {
-        if (text.includes(agent.name)) {
+        if (agent.names.some((name) => text.includes(name))) {
           mentionedAgents.add(agent.id);
         }
       });
@@ -409,7 +422,7 @@ export default function AnalyticsPage() {
       elapsedMinutes,
       levelCounts,
       uniqueAgentsInvolved: mentionedAgents.size,
-      topType: topType ? `${topType[0]} (${topType[1]})` : 'N/A',
+      topType: topType ? `${getEventTypeLabel(topType[0])} (${topType[1]})` : '暫無',
       windowStart: new Date(first.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       windowEnd: new Date(last.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
@@ -419,12 +432,12 @@ export default function AnalyticsPage() {
 
   return (
     <section className="space-y-4">
-      <Card title="Derived Metrics">
+      <Card title="衍生指標">
         <DataHealthBanner error={error} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
         {loading && !hasData ? (
           <SkeletonLines rows={6} />
         ) : !hasData ? (
-          <EmptyState title="No analytics data yet" detail="Waiting for tasks/events to compute derived metrics." />
+          <EmptyState title="目前尚無分析資料" detail="等待任務 / 事件資料以計算衍生指標。" />
         ) : (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {metrics.map((metric) => {
@@ -458,10 +471,10 @@ export default function AnalyticsPage() {
       </Card>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card title="Collaboration Hotspots">
-          <p className="mb-3 text-xs text-slate-400">Signals blend active task overlap and incident-thread co-mentions.</p>
+        <Card title="協作熱點">
+          <p className="mb-3 text-xs text-slate-400">這裡綜合了任務重疊與事件訊息中的共同提及訊號。</p>
           {collaborationHotspots.hotspots.length === 0 ? (
-            <p className="text-sm text-slate-400">No strong collaboration hotspots in the selected event scope.</p>
+            <p className="text-sm text-slate-400">在目前的事件範圍內，尚未偵測到明顯協作熱點。</p>
           ) : (
             <div className="space-y-3">
               <div className="space-y-2">
@@ -469,22 +482,22 @@ export default function AnalyticsPage() {
                   <div key={spot.id} className="rounded border border-slate-800 bg-slate-900/50 p-2 text-xs text-slate-300">
                     <div className="mb-1 flex items-center justify-between gap-2">
                       <span className="font-medium text-slate-100">{spot.name}</span>
-                      <span className="text-cyan-300">Score {spot.total}</span>
+                      <span className="text-cyan-300">分數 {spot.total}</span>
                     </div>
                     <div className="h-1.5 overflow-hidden rounded bg-slate-800">
                       <div className="h-full bg-cyan-500" style={{ width: `${Math.min(100, spot.total * 10)}%` }} />
                     </div>
                     <p className="mt-1 text-[11px] text-slate-400">
-                      Active load {spot.activeLoad} · Incident mentions {spot.incidentLoad} · Pair links {spot.pairLoad}
+                      活躍負載 {spot.activeLoad} · 事件提及 {spot.incidentLoad} · 配對連結 {spot.pairLoad}
                     </p>
                   </div>
                 ))}
               </div>
 
               <div>
-                <p className="mb-2 text-xs font-semibold text-slate-300">Top Collaboration Links</p>
+                <p className="mb-2 text-xs font-semibold text-slate-300">主要協作連結</p>
                 {collaborationHotspots.pairList.length === 0 ? (
-                  <p className="text-xs text-slate-400">No repeated pair interactions detected yet.</p>
+                  <p className="text-xs text-slate-400">目前尚未偵測到重複的雙人協作互動。</p>
                 ) : (
                   <div className="max-h-44 space-y-1 overflow-auto pr-1 text-xs">
                     {collaborationHotspots.pairList.map((pair) => (
@@ -497,9 +510,9 @@ export default function AnalyticsPage() {
               </div>
 
               <div>
-                <p className="mb-2 text-xs font-semibold text-slate-300">Hotspot Trend (time buckets)</p>
+                <p className="mb-2 text-xs font-semibold text-slate-300">熱點趨勢（時間分桶）</p>
                 {hotspotTrend.buckets.length === 0 ? (
-                  <p className="text-xs text-slate-400">Not enough event data for a trend yet.</p>
+                  <p className="text-xs text-slate-400">目前事件資料不足，還看不出趨勢。</p>
                 ) : (
                   <div className="space-y-1">
                     {hotspotTrend.buckets.map((bucket) => (
@@ -507,7 +520,7 @@ export default function AnalyticsPage() {
                         <div className="mb-1 flex items-center justify-between text-[11px] text-slate-400">
                           <span>{bucket.label}</span>
                           <span>
-                            Lead {bucket.leaderName} {bucket.leaderScore > 0 ? `(${bucket.leaderScore})` : ''}
+                            主導者 {bucket.leaderName} {bucket.leaderScore > 0 ? `(${bucket.leaderScore})` : ''}
                           </span>
                         </div>
                         <div className="h-1.5 overflow-hidden rounded bg-slate-800">
@@ -527,15 +540,15 @@ export default function AnalyticsPage() {
           )}
         </Card>
 
-        <Card title="Incident Playback">
-          <p className="mb-3 text-xs text-slate-400">Step through incident timeline with time, level, and speed controls.</p>
+        <Card title="事件回放">
+          <p className="mb-3 text-xs text-slate-400">用時間、等級與速度控制逐步重播事件時間軸。</p>
           {sortedEvents.length === 0 ? (
-            <p className="text-sm text-slate-400">No events available.</p>
+            <p className="text-sm text-slate-400">目前沒有事件資料。</p>
           ) : (
             <div className="space-y-3">
               <div className="grid gap-2 sm:grid-cols-3">
                 <label className="space-y-1 text-xs text-slate-300">
-                  <span className="text-slate-400">Time Range</span>
+                  <span className="text-slate-400">時間範圍</span>
                   <select
                     value={timeRange}
                     onChange={(e) => {
@@ -554,7 +567,7 @@ export default function AnalyticsPage() {
                 </label>
 
                 <label className="space-y-1 text-xs text-slate-300">
-                  <span className="text-slate-400">Level</span>
+                  <span className="text-slate-400">等級</span>
                   <select
                     value={levelFilter}
                     onChange={(e) => {
@@ -564,15 +577,15 @@ export default function AnalyticsPage() {
                     }}
                     className="w-full rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200 focus:border-cyan-500 focus:outline-none"
                   >
-                    <option value="all">All levels</option>
-                    <option value="info">Info</option>
-                    <option value="warning">Warning</option>
-                    <option value="error">Error</option>
+                    <option value="all">全部等級</option>
+                    <option value="info">資訊</option>
+                    <option value="warning">警告</option>
+                    <option value="error">錯誤</option>
                   </select>
                 </label>
 
                 <label className="space-y-1 text-xs text-slate-300">
-                  <span className="text-slate-400">Playback Speed</span>
+                  <span className="text-slate-400">播放速度</span>
                   <select
                     value={playbackSpeed}
                     onChange={(e) => {
@@ -599,14 +612,14 @@ export default function AnalyticsPage() {
                   className="rounded border border-slate-700 bg-slate-900 px-3 py-1 text-xs text-slate-200 hover:border-cyan-500"
                   disabled={filteredEvents.length === 0}
                 >
-                  ◀ Prev
+                  ◀ 上一筆
                 </button>
                 <button
                   onClick={() => setIsPlaying((playing) => !playing)}
                   className="rounded border border-cyan-600 bg-cyan-500/20 px-3 py-1 text-xs text-cyan-200 hover:bg-cyan-500/30 disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={filteredEvents.length <= 1}
                 >
-                  {isPlaying ? 'Pause' : 'Play'}
+                  {isPlaying ? '暫停' : '播放'}
                 </button>
                 <button
                   onClick={() => {
@@ -616,7 +629,7 @@ export default function AnalyticsPage() {
                   className="rounded border border-slate-700 bg-slate-900 px-3 py-1 text-xs text-slate-200 hover:border-cyan-500"
                   disabled={filteredEvents.length === 0}
                 >
-                  Next ▶
+                  下一筆 ▶
                 </button>
                 <button
                   onClick={() => {
@@ -626,7 +639,7 @@ export default function AnalyticsPage() {
                   className="rounded border border-slate-700 bg-slate-900 px-3 py-1 text-xs text-slate-200 hover:border-cyan-500"
                   disabled={filteredEvents.length === 0}
                 >
-                  Reset
+                  重設
                 </button>
                 <button
                   onClick={() => {
@@ -639,7 +652,7 @@ export default function AnalyticsPage() {
                   className="rounded border border-amber-700 bg-amber-500/10 px-3 py-1 text-xs text-amber-200 hover:bg-amber-500/20"
                   disabled={!filteredEvents.some((event) => event.level === 'warning' || event.level === 'error')}
                 >
-                  Jump first alert
+                  跳到第一則警示
                 </button>
                 <button
                   onClick={() => {
@@ -655,9 +668,9 @@ export default function AnalyticsPage() {
                   className="rounded border border-rose-700 bg-rose-500/10 px-3 py-1 text-xs text-rose-200 hover:bg-rose-500/20"
                   disabled={!filteredEvents.some((event) => event.level === 'error')}
                 >
-                  Jump last error
+                  跳到最後一則錯誤
                 </button>
-                <span className="text-xs text-slate-400">{filteredEvents.length} events in scope</span>
+                <span className="text-xs text-slate-400">目前範圍內共有 {filteredEvents.length} 筆事件</span>
               </div>
 
               <div className="h-2 overflow-hidden rounded bg-slate-800">
@@ -669,24 +682,24 @@ export default function AnalyticsPage() {
 
               {playbackSnapshot && (
                 <div className="rounded border border-slate-800 bg-slate-900/50 p-2">
-                  <p className="mb-2 text-xs font-semibold text-slate-300">Range Snapshot</p>
+                  <p className="mb-2 text-xs font-semibold text-slate-300">範圍快照</p>
                   <div className="grid gap-2 sm:grid-cols-3">
                     <div className="rounded border border-slate-800 bg-slate-950/40 p-2 text-xs text-slate-300">
-                      <p className="text-slate-400">Window</p>
+                      <p className="text-slate-400">時間窗</p>
                       <p className="mt-1 font-medium text-cyan-200">
                         {playbackSnapshot.windowStart} → {playbackSnapshot.windowEnd}
                       </p>
-                      <p className="text-[11px] text-slate-500">{playbackSnapshot.elapsedMinutes} min elapsed</p>
+                      <p className="text-[11px] text-slate-500">已經過 {playbackSnapshot.elapsedMinutes} 分鐘</p>
                     </div>
                     <div className="rounded border border-slate-800 bg-slate-950/40 p-2 text-xs text-slate-300">
-                      <p className="text-slate-400">Events / Agents</p>
+                      <p className="text-slate-400">事件 / Agents</p>
                       <p className="mt-1 font-medium text-cyan-200">
                         {playbackSnapshot.totalEvents} / {playbackSnapshot.uniqueAgentsInvolved}
                       </p>
-                      <p className="text-[11px] text-slate-500">events in played range / unique agents mentioned</p>
+                      <p className="text-[11px] text-slate-500">已播放範圍內的事件數 / 被提及的唯一 Agents</p>
                     </div>
                     <div className="rounded border border-slate-800 bg-slate-950/40 p-2 text-xs text-slate-300">
-                      <p className="text-slate-400">Top Event Type</p>
+                      <p className="text-slate-400">主要事件類型</p>
                       <p className="mt-1 font-medium text-cyan-200">{playbackSnapshot.topType}</p>
                       <p className="text-[11px] text-slate-500">
                         I {playbackSnapshot.levelCounts.info} · W {playbackSnapshot.levelCounts.warning} · E {playbackSnapshot.levelCounts.error}
@@ -706,11 +719,11 @@ export default function AnalyticsPage() {
                   </div>
                   <p className="text-slate-200">{activeEvent.message}</p>
                   <p className="mt-1 text-xs text-slate-500">
-                    {new Date(activeEvent.timestamp).toLocaleString()} · {activeEvent.type}
+                    {new Date(activeEvent.timestamp).toLocaleString()} · {getEventTypeLabel(activeEvent.type)}
                   </p>
                 </article>
               ) : (
-                <p className="text-sm text-slate-400">No incidents match current filters.</p>
+                <p className="text-sm text-slate-400">目前沒有符合篩選條件的事件。</p>
               )}
             </div>
           )}

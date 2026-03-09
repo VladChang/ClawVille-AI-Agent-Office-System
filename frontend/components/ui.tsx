@@ -1,3 +1,5 @@
+import { formatBadgeValue } from '@/lib/presentation';
+
 export function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
@@ -17,5 +19,5 @@ export function Badge({ value }: { value: string }) {
           ? 'bg-amber-500/20 text-amber-200'
           : 'bg-slate-700 text-slate-200';
 
-  return <span className={`rounded px-2 py-0.5 text-xs ${tone}`}>{value}</span>;
+  return <span className={`rounded px-2 py-0.5 text-xs ${tone}`}>{formatBadgeValue(value)}</span>;
 }

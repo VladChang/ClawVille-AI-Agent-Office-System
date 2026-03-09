@@ -29,6 +29,7 @@ export type EventType = CoreEventType | string;
 export interface Agent {
   id: string;
   name: string;
+  displayName?: string;
   role: string;
   status: AgentStatus;
   updatedAt: string;
@@ -137,4 +138,8 @@ export function getEventLevelWeight(level: EventLevel): number {
 
 export function isErrorLevel(level: EventLevel): boolean {
   return level === 'error';
+}
+
+export function getAgentDisplayName(agent: Pick<Agent, 'name'> & Partial<Pick<Agent, 'displayName'>>): string {
+  return typeof agent.displayName === 'string' && agent.displayName.trim().length > 0 ? agent.displayName.trim() : agent.name;
 }

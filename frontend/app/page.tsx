@@ -36,50 +36,50 @@ export default function OverviewPage() {
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <Card title="System Snapshot">
+      <Card title="系統快照">
         <DataHealthBanner error={error} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
         {loading && !hasData ? (
           <SkeletonLines rows={7} />
         ) : !hasData ? (
           <EmptyState
-            title="No dashboard data yet"
-            detail="Waiting for initial snapshot. If backend is offline, local fallback data will appear when available."
+            title="目前尚無儀表板資料"
+            detail="等待第一份快照。如果 backend 離線，系統會在可用時顯示本機 fallback 資料。"
           />
         ) : (
           <div className="grid gap-2 sm:grid-cols-2">
             <div className={`rounded border p-2 text-sm ${toneClass.neutral}`}>
-              <p className="text-xs text-slate-400">Total agents</p>
+              <p className="text-xs text-slate-400">Agents 總數</p>
               <p className="font-semibold">{agents.length}</p>
             </div>
             <div className={`rounded border p-2 text-sm ${toneClass.neutral}`}>
-              <p className="text-xs text-slate-400">Open tasks</p>
+              <p className="text-xs text-slate-400">未完成任務</p>
               <p className="font-semibold">{tasks.filter((t) => t.status !== 'done').length}</p>
             </div>
             <div className={`rounded border p-2 text-sm ${toneClass[cardTone.waitTime]}`}>
-              <p className="text-xs">Avg wait time</p>
-              <p className="font-semibold">{derived.averageWaitTime.valueMinutes} min</p>
+              <p className="text-xs">平均等待時間</p>
+              <p className="font-semibold">{derived.averageWaitTime.valueMinutes} 分鐘</p>
             </div>
             <div className={`rounded border p-2 text-sm ${toneClass[cardTone.errorRate]}`}>
-              <p className="text-xs">Error rate</p>
+              <p className="text-xs">錯誤率</p>
               <p className="font-semibold">{derived.errorRate.percentage}%</p>
             </div>
             <div className={`rounded border p-2 text-sm ${toneClass.neutral} sm:col-span-2`}>
-              <p className="text-xs text-slate-400">Busiest agent</p>
+              <p className="text-xs text-slate-400">最忙碌的 Agent</p>
               <p className="font-semibold">
                 {derived.busiestAgent
-                  ? `${derived.busiestAgent.name} (${derived.busiestAgent.activeTaskCount} active tasks)`
-                  : 'N/A'}
+                  ? `${derived.busiestAgent.name}（${derived.busiestAgent.activeTaskCount} 個進行中任務）`
+                  : '暫無'}
               </p>
             </div>
           </div>
         )}
       </Card>
 
-      <Card title="Recent Events">
+      <Card title="近期事件">
         {loading && events.length === 0 ? (
           <SkeletonLines rows={4} />
         ) : events.length === 0 ? (
-          <EmptyState title="No events yet" detail="Realtime timeline is empty right now." />
+          <EmptyState title="目前尚無事件" detail="即時事件時間軸暫時沒有資料。" />
         ) : (
           <div className="space-y-2">
             {events.slice(0, 4).map((event) => (

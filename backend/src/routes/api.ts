@@ -135,6 +135,17 @@ const updateTaskStatusBodySchema = {
   }
 } as const;
 
+const updateAgentDisplayNameBodySchema = {
+  type: 'object',
+  required: ['displayName'],
+  additionalProperties: false,
+  properties: {
+    displayName: {
+      anyOf: [nonBlankStringSchema, { type: 'null' }]
+    }
+  }
+} as const;
+
 const eventsQuerySchema = {
   type: 'object',
   additionalProperties: false,
@@ -291,6 +302,60 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
       throw error;
     }
   });
+
+  app.patch<{ Params: { id: string }; Body: { displayName: string | null } }>(
+    '/agents/:id/display-name',
+    {
+      schema: {
+        params: idParamsSchema,
+        body: updateAgentDisplayNameBodySchema
+      },
+      preHandler: mutationAccessPreHandler
+    },
+    async (req, reply) => {
+      const actor = getActor(req);
+
+      try {
+        const agent = await runtimeSource.updateAgentDisplayName(req.params.id, req.body.displayName);
+        if (!agent) {
+          auditTrail.record({
+            actorId: actor.id,
+            actorRole: actor.role,
+            action: 'agent.display_name',
+            targetType: 'agent',
+            targetId: req.params.id,
+            result: 'failure',
+            reason: 'NOT_FOUND'
+          });
+          return fail(reply, 404, 'Agent not found', 'NOT_FOUND');
+        }
+
+        auditTrail.record({
+          actorId: actor.id,
+          actorRole: actor.role,
+          action: 'agent.display_name',
+          targetType: 'agent',
+          targetId: agent.id,
+          result: 'success'
+        });
+        return ok(reply, agent);
+      } catch (error) {
+        if (isRuntimeUnavailable(error)) {
+          auditTrail.record({
+            actorId: actor.id,
+            actorRole: actor.role,
+            action: 'agent.display_name',
+            targetType: 'agent',
+            targetId: req.params.id,
+            result: 'failure',
+            reason: error.code
+          });
+          return runtimeFailure(reply, error);
+        }
+        throw error;
+      }
+    }
+  );
 
   app.get('/tasks', async (_, reply) => {
     try {

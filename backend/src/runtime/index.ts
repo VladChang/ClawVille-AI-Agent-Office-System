@@ -23,13 +23,16 @@ function hasFixtureTransportEnv(): boolean {
   return Boolean(process.env.OPENCLAW_RUNTIME_FIXTURE_JSON || process.env.OPENCLAW_RUNTIME_FIXTURE_PATH);
 }
 
-function hasEndpointCredentials(endpoint: string | undefined, apiKey: string | undefined): boolean {
-  return Boolean(endpoint && apiKey);
+function readRuntimeAdapterEndpoint(): string | undefined {
+  return process.env.OPENCLAW_ADAPTER_ENDPOINT?.trim() || process.env.OPENCLAW_RUNTIME_ENDPOINT?.trim();
 }
 
-function resolveStubReason(endpoint: string | undefined, apiKey: string | undefined): RuntimeNotConfiguredReason {
+function hasRuntimeAdapterEndpoint(endpoint: string | undefined): boolean {
+  return Boolean(endpoint);
+}
+
+function resolveStubReason(endpoint: string | undefined): RuntimeNotConfiguredReason {
   if (!endpoint) return 'missing-endpoint';
-  if (!apiKey) return 'missing-credentials';
   return 'client-unavailable';
 }
 
@@ -51,12 +54,11 @@ export interface RuntimeBinding {
 export function createRuntimeSourceForMode(mode: RuntimeSourceMode): RuntimeSource {
   if (mode === 'openclaw') {
     const allowFallback = parseBooleanEnv(process.env.ALLOW_RUNTIME_FALLBACK);
-    const endpoint = process.env.OPENCLAW_RUNTIME_ENDPOINT;
-    const apiKey = process.env.OPENCLAW_RUNTIME_API_KEY;
+    const endpoint = readRuntimeAdapterEndpoint();
     const transport = createOpenClawTransportFromEnv();
 
     return new OpenClawRuntimeSource({
-      client: transport ? new OpenClawTransportRuntimeClient(transport) : new OpenClawStubRuntimeClient(resolveStubReason(endpoint, apiKey)),
+      client: transport ? new OpenClawTransportRuntimeClient(transport) : new OpenClawStubRuntimeClient(resolveStubReason(endpoint)),
       fallback: mockRuntimeSource,
       allowFallback
     });
@@ -67,9 +69,8 @@ export function createRuntimeSourceForMode(mode: RuntimeSourceMode): RuntimeSour
 
 const runtimeSourceMode = resolveRuntimeSourceMode(process.env.RUNTIME_SOURCE);
 const allowRuntimeFallback = parseBooleanEnv(process.env.ALLOW_RUNTIME_FALLBACK);
-const endpoint = process.env.OPENCLAW_RUNTIME_ENDPOINT;
-const apiKey = process.env.OPENCLAW_RUNTIME_API_KEY;
-const runtimeClientConfigured = hasFixtureTransportEnv() || hasEndpointCredentials(endpoint, apiKey);
+const endpoint = readRuntimeAdapterEndpoint();
+const runtimeClientConfigured = hasFixtureTransportEnv() || hasRuntimeAdapterEndpoint(endpoint);
 
 // Central runtime source binding point.
 // Future OpenClaw adapters should be wired here without changing API/WS route contracts.
@@ -79,9 +80,9 @@ const runtimeDegraded = runtimeSourceMode === 'openclaw' && !runtimeClientConfig
 
 const runtimeWarning =
   runtimeSourceMode === 'openclaw' && runtimeDegraded && !allowRuntimeFallback
-    ? 'OpenClaw runtime adapter is not configured. Backend runs in strict degraded mode (no mock fallback). Set OPENCLAW_RUNTIME_ENDPOINT + OPENCLAW_RUNTIME_API_KEY, or OPENCLAW_RUNTIME_FIXTURE_PATH/OPENCLAW_RUNTIME_FIXTURE_JSON, or ALLOW_RUNTIME_FALLBACK=true.'
+    ? 'OpenClaw adapter endpoint is not configured. Backend runs in strict degraded mode (no mock fallback). Set OPENCLAW_ADAPTER_ENDPOINT (or legacy OPENCLAW_RUNTIME_ENDPOINT), or OPENCLAW_RUNTIME_FIXTURE_PATH/OPENCLAW_RUNTIME_FIXTURE_JSON, or ALLOW_RUNTIME_FALLBACK=true.'
     : runtimeSourceMode === 'openclaw' && runtimeDegraded && allowRuntimeFallback
-      ? 'OpenClaw runtime adapter is not configured. ALLOW_RUNTIME_FALLBACK=true enables mock fallback for non-production use.'
+      ? 'OpenClaw adapter endpoint is not configured. ALLOW_RUNTIME_FALLBACK=true enables mock fallback for non-production use.'
       : undefined;
 
 export const runtimeBinding: RuntimeBinding = {

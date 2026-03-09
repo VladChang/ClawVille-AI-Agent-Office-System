@@ -25,7 +25,7 @@ stop_local() {
   local stopped="false"
   local pid_file
 
-  for pid_file in "$RUN_DIR"/backend.pid "$RUN_DIR"/frontend.pid; do
+  for pid_file in "$RUN_DIR"/adapter.pid "$RUN_DIR"/backend.pid "$RUN_DIR"/frontend.pid; do
     if [[ ! -f "$pid_file" ]]; then
       continue
     fi

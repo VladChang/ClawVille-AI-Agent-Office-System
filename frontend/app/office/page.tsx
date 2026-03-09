@@ -3,18 +3,19 @@
 import { useMemo } from 'react';
 import { Card, Badge } from '@/components/ui';
 import { DataHealthBanner, EmptyState } from '@/components/dataState';
+import { getAgentLabel } from '@/lib/presentation';
 import { useDashboardStore } from '@/store/dashboardStore';
 import type { Agent, AgentStatus } from '@/types/models';
 
 const roomOrder = [
-  'Planning Room',
-  'Research Library',
-  'Memory Archive',
-  'Tool Workshop',
-  'Review Room',
-  'Collaboration Hub',
-  'Break Area',
-  'Incident Desk'
+  '規劃室',
+  '研究圖書館',
+  '記憶檔案庫',
+  '工具工坊',
+  '審查室',
+  '協作中樞',
+  '休息區',
+  '事件處理台'
 ] as const;
 
 type Room = (typeof roomOrder)[number];
@@ -26,34 +27,34 @@ const moodByStatus: Record<AgentStatus, string> = {
 };
 
 const roomLayout: Record<Room, { x: number; y: number; w: number; h: number }> = {
-  'Planning Room': { x: 3, y: 4, w: 27, h: 20 },
-  'Research Library': { x: 35, y: 4, w: 27, h: 20 },
-  'Memory Archive': { x: 67, y: 4, w: 30, h: 20 },
-  'Tool Workshop': { x: 3, y: 30, w: 30, h: 20 },
-  'Review Room': { x: 38, y: 30, w: 24, h: 20 },
-  'Collaboration Hub': { x: 67, y: 30, w: 30, h: 20 },
-  'Break Area': { x: 3, y: 56, w: 44, h: 20 },
-  'Incident Desk': { x: 52, y: 56, w: 45, h: 20 }
+  '規劃室': { x: 3, y: 4, w: 27, h: 20 },
+  '研究圖書館': { x: 35, y: 4, w: 27, h: 20 },
+  '記憶檔案庫': { x: 67, y: 4, w: 30, h: 20 },
+  '工具工坊': { x: 3, y: 30, w: 30, h: 20 },
+  '審查室': { x: 38, y: 30, w: 24, h: 20 },
+  '協作中樞': { x: 67, y: 30, w: 30, h: 20 },
+  '休息區': { x: 3, y: 56, w: 44, h: 20 },
+  '事件處理台': { x: 52, y: 56, w: 45, h: 20 }
 };
 
 function roomForAgent(agent: Agent): Room {
   const role = agent.role.toLowerCase();
 
-  if (agent.status === 'offline') return 'Incident Desk';
-  if (agent.status === 'idle') return 'Break Area';
-  if (role.includes('plan') || role.includes('coord')) return 'Planning Room';
-  if (role.includes('research') || role.includes('browser') || role.includes('analyst')) return 'Research Library';
-  if (role.includes('memory') || role.includes('knowledge')) return 'Memory Archive';
-  if (role.includes('tool') || role.includes('builder') || role.includes('execute')) return 'Tool Workshop';
-  if (role.includes('review') || role.includes('qa') || role.includes('critic')) return 'Review Room';
-  return 'Collaboration Hub';
+  if (agent.status === 'offline') return '事件處理台';
+  if (agent.status === 'idle') return '休息區';
+  if (role.includes('plan') || role.includes('coord')) return '規劃室';
+  if (role.includes('research') || role.includes('browser') || role.includes('analyst')) return '研究圖書館';
+  if (role.includes('memory') || role.includes('knowledge')) return '記憶檔案庫';
+  if (role.includes('tool') || role.includes('builder') || role.includes('execute')) return '工具工坊';
+  if (role.includes('review') || role.includes('qa') || role.includes('critic')) return '審查室';
+  return '協作中樞';
 }
 
 function thoughtSummary(agent: Agent, taskTitle?: string): string {
-  if (agent.status === 'offline') return 'Handling incident recovery checks.';
-  if (agent.status === 'idle') return 'Idle until a new task arrives.';
-  if (taskTitle) return `Working on: ${taskTitle}`;
-  return 'Syncing with team updates.';
+  if (agent.status === 'offline') return '正在處理事件復原檢查。';
+  if (agent.status === 'idle') return '等待下一個任務派發。';
+  if (taskTitle) return `目前工作：${taskTitle}`;
+  return '正在同步團隊更新。';
 }
 
 export default function OfficePage() {
@@ -71,14 +72,14 @@ export default function OfficePage() {
 
   const grouped = useMemo(() => {
     const map: Record<Room, Agent[]> = {
-      'Planning Room': [],
-      'Research Library': [],
-      'Memory Archive': [],
-      'Tool Workshop': [],
-      'Review Room': [],
-      'Collaboration Hub': [],
-      'Break Area': [],
-      'Incident Desk': []
+      '規劃室': [],
+      '研究圖書館': [],
+      '記憶檔案庫': [],
+      '工具工坊': [],
+      '審查室': [],
+      '協作中樞': [],
+      '休息區': [],
+      '事件處理台': []
     };
 
     for (const agent of agents) {
@@ -93,8 +94,8 @@ export default function OfficePage() {
   const collaborationSignals = useMemo(() => {
     const active = tasks.filter((t) => t.status === 'in_progress' || t.status === 'blocked');
     return active.slice(0, 5).map((task) => {
-      const owner = agents.find((a) => a.id === task.assigneeAgentId)?.name ?? 'Unassigned';
-      return { id: task.id, text: `${owner} · ${task.title}` };
+      const owner = agents.find((a) => a.id === task.assigneeAgentId);
+      return { id: task.id, text: `${owner ? getAgentLabel(owner) : '未指派'} · ${task.title}` };
     });
   }, [tasks, agents]);
 
@@ -117,7 +118,7 @@ export default function OfficePage() {
   }, [grouped]);
 
   const collaborationEdges = useMemo(() => {
-    const hub = roomLayout['Collaboration Hub'];
+    const hub = roomLayout['協作中樞'];
     const hubX = hub.x + hub.w / 2;
     const hubY = hub.y + hub.h / 2;
 
@@ -133,8 +134,8 @@ export default function OfficePage() {
 
   return (
     <section className="space-y-4">
-      <Card title="Office View">
-        <p className="mb-3 text-sm text-slate-300">Live visual map of the same agent state shown in list pages. Click any avatar to open agent detail.</p>
+      <Card title="辦公室視圖">
+        <p className="mb-3 text-sm text-slate-300">這裡會用視覺化方式呈現與列表頁相同的 Agent 狀態。點擊任何 avatar 可打開 Agent 詳細面板。</p>
         <div className="flex flex-wrap gap-2">
           {occupancy.map((item) => (
             <span key={item.room} className="rounded-md border border-slate-700 bg-slate-900/60 px-2 py-1 text-xs text-slate-300">
@@ -144,15 +145,15 @@ export default function OfficePage() {
         </div>
       </Card>
 
-      {loading && agents.length === 0 && <p className="text-sm text-slate-300">Loading office state...</p>}
+      {loading && agents.length === 0 && <p className="text-sm text-slate-300">正在載入辦公室狀態…</p>}
       <DataHealthBanner error={error} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
 
-      <Card title="Office Map">
-        <div className="mb-2 text-xs text-slate-400">Tip: click any avatar to sync highlight with Agents list and open control drawer.</div>
+      <Card title="辦公室地圖">
+        <div className="mb-2 text-xs text-slate-400">提示：點擊任何 avatar，會同步高亮 Agents 列表並打開控制抽屜。</div>
         {agents.length === 0 ? (
           <EmptyState
-            title="No agent data yet"
-            detail="Keep backend running and wait for the first realtime snapshot or local fallback payload."
+            title="目前尚無 Agent 資料"
+            detail="請保持 backend 運行，等待第一份即時快照或本機 fallback payload。"
           />
         ) : (
         <div className="relative h-[430px] w-full overflow-hidden rounded-xl border border-slate-800 bg-slate-950 md:h-[560px]">
@@ -197,14 +198,14 @@ export default function OfficePage() {
                   selected ? 'border-cyan-400 ring-1 ring-cyan-500/50' : 'border-slate-700 hover:border-cyan-600'
                 }`}
                 style={{ left: `${x}%`, top: `${y}%` }}
-                title={`${agent.name} · ${room}`}
+                title={`${getAgentLabel(agent)} · ${room}`}
               >
                 <div className="mb-1 flex items-center justify-between gap-2">
                   <span className={`text-sm ${agent.status === 'busy' ? 'animate-agent-pulse' : ''}`}>{moodByStatus[agent.status]}</span>
                   <Badge value={agent.status} />
                 </div>
-                <p className="truncate text-xs font-medium text-slate-100">{agent.name}</p>
-                <p className="truncate text-[10px] text-slate-400">{currentTask?.title ?? 'No active task'}</p>
+                <p className="truncate text-xs font-medium text-slate-100">{getAgentLabel(agent)}</p>
+                <p className="truncate text-[10px] text-slate-400">{currentTask?.title ?? '目前沒有進行中的任務'}</p>
               </button>
             );
           })}
@@ -212,9 +213,9 @@ export default function OfficePage() {
         )}
       </Card>
 
-      <Card title="Collaboration Signals">
+      <Card title="協作訊號">
         {collaborationSignals.length === 0 ? (
-          <p className="text-sm text-slate-400">No active collaborations right now.</p>
+          <p className="text-sm text-slate-400">目前沒有明顯的協作活動。</p>
         ) : (
           <ul className="space-y-2">
             {collaborationSignals.map((signal) => (
@@ -230,7 +231,7 @@ export default function OfficePage() {
         {roomOrder.map((room) => (
           <Card key={room} title={room}>
             {grouped[room].length === 0 ? (
-              <p className="text-sm text-slate-400">No agents in this room.</p>
+              <p className="text-sm text-slate-400">這個房間目前沒有 Agent。</p>
             ) : (
               <ul className="space-y-2">
                 {grouped[room].map((agent) => {
@@ -244,13 +245,13 @@ export default function OfficePage() {
                         className={`w-full rounded-lg border bg-slate-900/70 p-3 text-left transition ${
                           selected ? 'border-cyan-500 ring-1 ring-cyan-500/50' : 'border-slate-800 hover:border-cyan-600'
                         }`}
-                        title={`${agent.name} (${agent.status})`}
+                        title={`${getAgentLabel(agent)} (${agent.status})`}
                       >
                         <div className="mb-1 flex items-center justify-between gap-3">
                           <div className="flex items-center gap-2 text-sm font-medium text-slate-100">
                             <span className={agent.status === 'busy' ? 'animate-agent-pulse' : ''}>{moodByStatus[agent.status]}</span>
-                            <span>{agent.name}</span>
-                            {selected && <span className="text-[10px] uppercase tracking-wide text-cyan-300">selected</span>}
+                            <span>{getAgentLabel(agent)}</span>
+                            {selected && <span className="text-[10px] tracking-wide text-cyan-300">已選取</span>}
                           </div>
                           <Badge value={agent.status} />
                         </div>

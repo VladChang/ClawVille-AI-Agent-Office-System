@@ -19,6 +19,7 @@ export interface RuntimeSource {
   addAgent(payload: Pick<Agent, 'name' | 'role'> & Partial<Pick<Agent, 'status'>>): Promise<Agent>;
   pauseAgent(agentId: string): Promise<Agent | undefined>;
   resumeAgent(agentId: string): Promise<Agent | undefined>;
+  updateAgentDisplayName(agentId: string, displayName: string | null): Promise<Agent | undefined>;
   addTask(
     payload: Pick<Task, 'title' | 'priority'> & Partial<Omit<Task, 'id' | 'title' | 'priority' | 'createdAt' | 'updatedAt'>>
   ): Promise<Task>;

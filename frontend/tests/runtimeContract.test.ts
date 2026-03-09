@@ -19,6 +19,7 @@ test('mapRuntimeAgent requires core fields and normalizes invalid status', () =>
   const mapped = mapRuntimeAgent({
     id: 'a-1',
     name: 'Nova',
+    displayName: '諾瓦',
     role: 'Planner',
     status: 'not-valid',
     updatedAt: '2026-03-08T00:00:00.000Z'
@@ -26,6 +27,7 @@ test('mapRuntimeAgent requires core fields and normalizes invalid status', () =>
 
   assert.ok(mapped);
   assert.equal(mapped?.status, 'offline');
+  assert.equal(mapped?.displayName, '諾瓦');
 });
 
 test('mapRuntimeTask supports partial payload fallback and rejects malformed records', () => {

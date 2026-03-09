@@ -2,6 +2,7 @@
 
 import { Badge, Card } from '@/components/ui';
 import { DataHealthBanner, EmptyState } from '@/components/dataState';
+import { getAgentLabel } from '@/lib/presentation';
 import { useDashboardStore } from '@/store/dashboardStore';
 
 export default function AgentsPage() {
@@ -34,7 +35,7 @@ export default function AgentsPage() {
   }));
 
   const filtered = agents.filter((agent) => {
-    const matchesSearch = `${agent.name} ${agent.role}`.toLowerCase().includes(agentSearch.toLowerCase());
+    const matchesSearch = `${agent.name} ${agent.displayName ?? ''} ${agent.role}`.toLowerCase().includes(agentSearch.toLowerCase());
     const matchesStatus = agentStatusFilter === 'all' || agent.status === agentStatusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -42,14 +43,14 @@ export default function AgentsPage() {
   const hasData = agents.length > 0;
 
   return (
-    <Card title="Agents">
+    <Card title="代理人列表">
       <DataHealthBanner error={error} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
 
       <div className="mb-3 flex flex-wrap gap-2">
         <input
           value={agentSearch}
           onChange={(e) => setAgentSearch(e.target.value)}
-          placeholder="Search name or role"
+          placeholder="搜尋名稱、別名或角色"
           className="rounded border border-slate-700 bg-slate-950 px-3 py-1 text-sm"
         />
         <select
@@ -57,19 +58,19 @@ export default function AgentsPage() {
           onChange={(e) => setAgentStatusFilter(e.target.value as typeof agentStatusFilter)}
           className="rounded border border-slate-700 bg-slate-950 px-3 py-1 text-sm"
         >
-          <option value="all">All status</option>
-          <option value="idle">Idle</option>
-          <option value="busy">Busy</option>
-          <option value="offline">Offline</option>
+          <option value="all">全部狀態</option>
+          <option value="idle">待命</option>
+          <option value="busy">忙碌</option>
+          <option value="offline">離線</option>
         </select>
       </div>
 
       {loading && !hasData ? (
-        <p className="text-sm text-slate-400">Loading agents…</p>
+        <p className="text-sm text-slate-400">正在載入 Agents…</p>
       ) : filtered.length === 0 ? (
         <EmptyState
-          title={hasData ? 'No agents match current filters' : 'No agents available'}
-          detail={hasData ? 'Try clearing search or status filters.' : 'Waiting for agent data from API/realtime snapshot.'}
+          title={hasData ? '目前沒有符合篩選條件的 Agent' : '目前沒有 Agent 資料'}
+          detail={hasData ? '請試著清除搜尋或狀態篩選。' : '等待 API / 即時快照回傳 Agent 資料。'}
         />
       ) : (
         <div className="space-y-2">
@@ -86,12 +87,12 @@ export default function AgentsPage() {
               >
                 <div className="mb-2 flex items-center justify-between">
                   <p className="font-medium">
-                    {agent.name} {selected && <span className="ml-1 text-xs text-cyan-300">(selected)</span>}
+                    {getAgentLabel(agent)} {selected && <span className="ml-1 text-xs text-cyan-300">（已選取）</span>}
                   </p>
                   <Badge value={agent.status} />
                 </div>
                 <p className="text-sm text-slate-300">{agent.role}</p>
-                <p className="text-xs text-slate-400">Task: {task?.title ?? 'None'}</p>
+                <p className="text-xs text-slate-400">任務：{task?.title ?? '暫無'}</p>
               </button>
             );
           })}

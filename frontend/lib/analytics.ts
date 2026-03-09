@@ -1,4 +1,5 @@
 import { isErrorLevel } from '@/lib/schema';
+import { getAgentLabel } from '@/lib/presentation';
 import type {
   Agent,
   Task,
@@ -41,11 +42,11 @@ export function getBusiestAgentByActiveTasks(agents: Agent[], tasks: Task[]): Bu
     }
   }
 
-  const agentName = agents.find((agent) => agent.id === bestAgentId)?.name ?? 'Unknown Agent';
+  const agentName = agents.find((agent) => agent.id === bestAgentId);
 
   return {
     agentId: bestAgentId,
-    name: agentName,
+    name: agentName ? getAgentLabel(agentName) : '未知 Agent',
     activeTaskCount: bestCount
   };
 }

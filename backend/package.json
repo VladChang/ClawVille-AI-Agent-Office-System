@@ -6,11 +6,13 @@
   "main": "dist/backend/src/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "adapter:dev": "tsx watch src/adapter/server.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/backend/src/server.js",
+    "adapter:start": "node dist/backend/src/adapter/server.js",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/**/*.test.ts",
-    "test:ci": "node --import tsx --test tests/api-behavior-unchanged.test.ts tests/api-validation.test.ts tests/api.test.ts tests/auth-rbac.test.ts tests/audit-trail.test.ts tests/persistence.test.ts tests/realtime.contract.test.ts tests/runtime-source.contract.test.ts tests/runtime-source-selection.test.ts tests/openclaw-runtime.integration.test.ts tests/openclaw-http.transport.test.ts tests/shared-contracts.test.ts",
+    "test:ci": "node --import tsx --test tests/api-behavior-unchanged.test.ts tests/api-validation.test.ts tests/api.test.ts tests/auth-rbac.test.ts tests/audit-trail.test.ts tests/persistence.test.ts tests/realtime.contract.test.ts tests/runtime-source.contract.test.ts tests/runtime-source-selection.test.ts tests/openclaw-runtime.integration.test.ts tests/openclaw-http.transport.test.ts tests/openclaw-adapter.test.ts tests/shared-contracts.test.ts",
     "check": "npm run typecheck && npm run test:ci",
     "check:full": "npm run typecheck && npm run test"
   },

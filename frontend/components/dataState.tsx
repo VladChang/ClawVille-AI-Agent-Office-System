@@ -23,7 +23,7 @@ export function DataHealthBanner({
         <Notice tone="warn">
           {isRuntimeNotConfigured ? (
             <>
-              <b>Runtime not configured:</b> {connectionMessage}
+              <b>尚未設定 runtime：</b> {connectionMessage}
             </>
           ) : (
             connectionMessage

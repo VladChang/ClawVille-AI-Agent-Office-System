@@ -64,23 +64,28 @@ Current binding is env-driven via `RUNTIME_SOURCE`:
 - `mock` -> `MockRuntimeSource` (`backend/src/runtime/mockRuntimeSource.ts`)
 - `openclaw` -> `OpenClawRuntimeSource` (`backend/src/runtime/openclawRuntimeSource.ts`) backed by transport abstraction (`backend/src/runtime/openclawTransport.ts`)
 
-OpenClaw runtime env vars:
-- `OPENCLAW_RUNTIME_ENDPOINT`
-- `OPENCLAW_RUNTIME_API_KEY`
+OpenClaw adapter env vars:
+- `OPENCLAW_ADAPTER_ENDPOINT`
+- `OPENCLAW_ADAPTER_API_KEY` (optional)
+- `OPENCLAW_ADAPTER_AUTH_HEADER`
+- `OPENCLAW_ADAPTER_AUTH_SCHEME`
+- `OPENCLAW_ADAPTER_SNAPSHOT_PATH`
+- `OPENCLAW_ADAPTER_AGENTS_PATH`
+- `OPENCLAW_ADAPTER_TASKS_PATH`
+- `OPENCLAW_ADAPTER_EVENTS_PATH`
 - `OPENCLAW_RUNTIME_FIXTURE_PATH` (integration/dev fixture transport)
 - `OPENCLAW_RUNTIME_FIXTURE_JSON` (inline fixture JSON transport)
 - `OPENCLAW_RUNTIME_POLL_MS` (base polling interval for HTTP subscription baseline)
 - `OPENCLAW_RUNTIME_POLL_MAX_BACKOFF_MS` (caps retry delay after temporary upstream failures)
 - `OPENCLAW_RUNTIME_REQUEST_TIMEOUT_MS` (request timeout for snapshot/list/control HTTP calls)
-- `OPENCLAW_RUNTIME_AUTH_HEADER` / `OPENCLAW_RUNTIME_AUTH_SCHEME` (default `authorization` + `Bearer`)
-- `OPENCLAW_RUNTIME_SNAPSHOT_PATH`, `OPENCLAW_RUNTIME_AGENTS_PATH`, `OPENCLAW_RUNTIME_TASKS_PATH`, `OPENCLAW_RUNTIME_EVENTS_PATH` (override upstream JSON paths when needed)
+- `OPENCLAW_INTERNAL_BASE_URL` and related `OPENCLAW_INTERNAL_*` vars configure the adapter's upstream OpenClaw connection
 - `ALLOW_RUNTIME_FALLBACK=false` by default (strict mode)
 
 Behavior:
 - If runtime client is not configured and fallback is disabled, API returns `503` with `RUNTIME_NOT_CONFIGURED`.
 - If `ALLOW_RUNTIME_FALLBACK=true`, backend can proxy to mock runtime for non-production/dev continuity.
 - If fixture env vars are provided, backend uses fixture transport and maps payloads into the unified dashboard schema for API + websocket parity.
-- If `OPENCLAW_RUNTIME_ENDPOINT` + `OPENCLAW_RUNTIME_API_KEY` are provided, backend uses an async HTTP/JSON transport for snapshot/list/control operations and a polling-based subscription with timeout/backoff recovery for runtime updates.
+- If `OPENCLAW_ADAPTER_ENDPOINT` is provided, backend uses an async adapter-backed HTTP/JSON transport for snapshot/list/control operations and a polling-based subscription with timeout/backoff recovery for runtime updates.
 
 Contract boundary for future adapters:
 - API routes keep the same HTTP paths and response envelope (`success/data/error`)
@@ -90,7 +95,7 @@ Contract boundary for future adapters:
   - control writes: `addAgent`, `pauseAgent`, `resumeAgent`, `addTask`, `updateTaskStatus`, `retryTask`
   - realtime hook: `onStateChange`
 
-This allows swapping in an OpenClaw-backed runtime adapter later without changing API route definitions.
+This allows the backend to keep stable API route definitions while OpenClaw-specific normalization lives in the adapter service.
 
 ## `GET /health`
 Liveness check.

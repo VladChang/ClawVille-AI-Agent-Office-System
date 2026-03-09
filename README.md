@@ -71,25 +71,25 @@ npm run stop
 
 ### Backend（`RUNTIME_SOURCE`）
 - `mock`：使用 in-memory runtime source
-- `openclaw`：使用 HTTP/JSON runtime transport baseline；當 runtime config 缺失或尚未 ready 時，會以 strict degraded signaling 表現；fixture mode 仍可用於本地整合
+- `openclaw`：透過 OpenClaw adapter service 連線；當 adapter / upstream config 缺失或尚未 ready 時，會以 strict degraded signaling 表現；fixture mode 仍可用於本地整合
 
 `openclaw` mode 重要 env：
-- `OPENCLAW_RUNTIME_ENDPOINT`
-- `OPENCLAW_RUNTIME_API_KEY`
+- `OPENCLAW_ADAPTER_ENDPOINT`
+- `OPENCLAW_ADAPTER_API_KEY`（選填）
+- `OPENCLAW_ADAPTER_AUTH_HEADER`
+- `OPENCLAW_ADAPTER_AUTH_SCHEME`
+- `OPENCLAW_ADAPTER_SNAPSHOT_PATH`
+- `OPENCLAW_ADAPTER_AGENTS_PATH`
+- `OPENCLAW_ADAPTER_TASKS_PATH`
+- `OPENCLAW_ADAPTER_EVENTS_PATH`
 - `OPENCLAW_RUNTIME_POLL_MS`
 - `OPENCLAW_RUNTIME_POLL_MAX_BACKOFF_MS`
 - `OPENCLAW_RUNTIME_REQUEST_TIMEOUT_MS`
-- `OPENCLAW_RUNTIME_AUTH_HEADER`
-- `OPENCLAW_RUNTIME_AUTH_SCHEME`
-- `OPENCLAW_RUNTIME_SNAPSHOT_PATH`
-- `OPENCLAW_RUNTIME_AGENTS_PATH`
-- `OPENCLAW_RUNTIME_TASKS_PATH`
-- `OPENCLAW_RUNTIME_EVENTS_PATH`
 - `ALLOW_RUNTIME_FALLBACK=false`（建議/預期用於 strict posture）
 
 目前 `openclaw` 的成熟度：
-- 已有 runtime boundary、env 選擇機制、degraded readiness 與 fixture-backed tests
-- HTTP transport 已支援對 JSON endpoint 做 snapshot/list/control，並可透過 polling-based snapshot subscription、request timeout、backoff-based recovery 取得 realtime updates
+- 已有 adapter boundary、env 選擇機制、degraded readiness、displayName alias 支援與 fixture-backed tests
+- ClawVille backend 會連到 adapter；adapter 再把 OpenClaw internal agent/task/event/state 正規化成 shared runtime contract
 - 仍待補 production hardening：upstream-specific endpoint conventions、更完整的 auth negotiation，以及 push/event-stream transport
 
 ## 架構摘要
@@ -108,7 +108,13 @@ Backend (Fastify API + /ws)
         ▼
 RuntimeSource
   ├─ MockRuntimeSource (in-memory)
-  └─ OpenClawRuntimeSource (fixture + HTTP transport baseline; polling subscription)
+  └─ OpenClawRuntimeSource (fixture + adapter-backed HTTP transport; polling subscription)
+        │
+        ▼
+OpenClaw Adapter Service
+  ├─ Normalize internal OpenClaw payloads
+  ├─ Preserve original name + editable displayName alias
+  └─ Expose snapshot/agents/tasks/events + control endpoints
 ```
 
 ## Shared Contracts

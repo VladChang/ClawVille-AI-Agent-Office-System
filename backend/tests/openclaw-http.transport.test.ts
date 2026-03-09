@@ -111,6 +111,16 @@ test('http openclaw transport supports snapshot, control actions, and polling su
       return jsonResponse({ success: true, data: agent });
     }
 
+    if (method === 'PATCH' && url.pathname === '/agents/http-a-1/display-name') {
+      const agent = state.agents.find((entry) => entry.id === 'http-a-1');
+      if (!agent) return jsonResponse({ error: { message: 'Agent not found' } }, 404);
+
+      const body = JSON.parse(String(init?.body ?? '{}')) as { displayName?: string | null };
+      agent.displayName = typeof body.displayName === 'string' && body.displayName.trim().length > 0 ? body.displayName.trim() : undefined;
+      agent.updatedAt = now;
+      return jsonResponse({ success: true, data: agent });
+    }
+
     if (method === 'PATCH' && url.pathname === '/tasks/http-t-1/status') {
       const task = state.tasks.find((entry) => entry.id === 'http-t-1');
       if (!task) return jsonResponse({ error: { message: 'Task not found' } }, 404);
@@ -177,6 +187,9 @@ test('http openclaw transport supports snapshot, control actions, and polling su
 
     const paused = await source.pauseAgent('http-a-1');
     assert.equal(paused?.status, 'offline');
+
+    const aliased = await source.updateAgentDisplayName('http-a-1', '阿特拉斯');
+    assert.equal(aliased?.displayName, '阿特拉斯');
 
     for (let i = 0; i < 20 && !subscriptionSeen; i += 1) {
       await new Promise((resolve) => setTimeout(resolve, 25));

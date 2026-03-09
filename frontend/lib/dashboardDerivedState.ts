@@ -1,4 +1,5 @@
 import type { Agent, Task } from '@/types/models';
+import { getAgentLabel } from '@/lib/presentation';
 
 export interface DashboardDerivedState {
   activeAgentCount: number;
@@ -13,7 +14,7 @@ export function buildDashboardDerivedState(agents: Agent[], tasks: Task[]): Dash
   let activeAgentCount = 0;
 
   for (const agent of agents) {
-    agentNameById[agent.id] = agent.name;
+    agentNameById[agent.id] = getAgentLabel(agent);
     if (agent.status !== 'offline') {
       activeAgentCount += 1;
     }

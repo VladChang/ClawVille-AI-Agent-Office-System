@@ -1,12 +1,15 @@
 # syntax=docker/dockerfile:1
 
 FROM node:20-alpine AS deps
-WORKDIR /app
-COPY package*.json ./
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
 RUN npm ci
 
 FROM deps AS build
-COPY . .
+WORKDIR /app
+COPY shared ./shared
+COPY frontend ./frontend
+WORKDIR /app/frontend
 ARG NEXT_PUBLIC_API_BASE_URL=http://backend:3001/api
 ARG NEXT_PUBLIC_WS_URL=ws://backend:3001/ws
 ARG NEXT_PUBLIC_RUNTIME_MODE=local
@@ -20,12 +23,12 @@ ENV NEXT_PUBLIC_OPERATOR_ROLE=${NEXT_PUBLIC_OPERATOR_ROLE}
 RUN npm run build
 
 FROM node:20-alpine AS runtime
-WORKDIR /app
+WORKDIR /app/frontend
 ENV NODE_ENV=production
-COPY package*.json ./
+COPY frontend/package*.json ./
 RUN npm ci --omit=dev
-COPY --from=build /app/.next ./.next
-COPY --from=build /app/public ./public
-COPY --from=build /app/next.config.mjs ./next.config.mjs
+COPY --from=build /app/frontend/.next ./.next
+COPY --from=build /app/frontend/public ./public
+COPY --from=build /app/frontend/next.config.mjs ./next.config.mjs
 EXPOSE 3000
 CMD ["npm", "start"]

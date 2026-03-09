@@ -74,6 +74,26 @@ test('PATCH /api/tasks/:id/status rejects invalid status values with a consisten
   }
 });
 
+test('PATCH /api/agents/:id/display-name rejects blank aliases with a consistent validation envelope', async () => {
+  const app = await createApp();
+
+  try {
+    const response = await app.inject({
+      method: 'PATCH',
+      url: '/api/agents/agent-1/display-name',
+      payload: { displayName: '   ' }
+    });
+
+    assert.equal(response.statusCode, 400);
+    const body = response.json();
+    assert.equal(body.success, false);
+    assert.equal(body.error.code, 'VALIDATION_ERROR');
+    assert.equal(body.error.details.some((detail: { field: string }) => detail.field === 'body.displayName'), true);
+  } finally {
+    await app.close();
+  }
+});
+
 test('POST mutation endpoints reject blank identifier params before hitting runtime logic', async () => {
   const app = await createApp();
 

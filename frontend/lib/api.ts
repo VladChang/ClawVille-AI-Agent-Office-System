@@ -19,13 +19,14 @@ export async function fetchEvents(): Promise<Event[]> {
 
 const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001/api';
 
-async function apiPost<T>(path: string): Promise<T> {
+async function apiRequest<T>(path: string, method: 'POST' | 'PATCH', body?: unknown): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path}`, {
-    method: 'POST',
+    method,
     headers: {
       'Content-Type': 'application/json',
       ...getOperatorHeaders()
-    }
+    },
+    body: body === undefined ? undefined : JSON.stringify(body)
   });
   const json = (await response.json()) as { success: boolean; data: T; error?: { message?: string } };
 
@@ -41,15 +42,19 @@ export function getConfiguredRuntimeMode(): RuntimeMode {
 }
 
 export async function pauseAgent(agentId: string): Promise<Agent> {
-  return apiPost<Agent>(`/agents/${agentId}/pause`);
+  return apiRequest<Agent>(`/agents/${agentId}/pause`, 'POST');
 }
 
 export async function resumeAgent(agentId: string): Promise<Agent> {
-  return apiPost<Agent>(`/agents/${agentId}/resume`);
+  return apiRequest<Agent>(`/agents/${agentId}/resume`, 'POST');
 }
 
 export async function retryTask(taskId: string): Promise<Task> {
-  return apiPost<Task>(`/tasks/${taskId}/retry`);
+  return apiRequest<Task>(`/tasks/${taskId}/retry`, 'POST');
+}
+
+export async function updateAgentDisplayName(agentId: string, displayName: string | null): Promise<Agent> {
+  return apiRequest<Agent>(`/agents/${agentId}/display-name`, 'PATCH', { displayName });
 }
 
 export function connectDashboardWs(onMessage: (payload: SnapshotPayload) => void): WebSocket {

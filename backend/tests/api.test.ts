@@ -60,6 +60,32 @@ test('POST /api/agents/:id/resume resumes a paused agent', async () => {
   }
 });
 
+test('PATCH /api/agents/:id/display-name updates agent alias without overwriting original name', async () => {
+  const app = await createApp();
+
+  try {
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/agents',
+      payload: { name: 'Original Agent Name', role: 'QA' }
+    });
+
+    const agentId = created.json().data.id as string;
+
+    const updated = await app.inject({
+      method: 'PATCH',
+      url: `/api/agents/${agentId}/display-name`,
+      payload: { displayName: '繁中別名' }
+    });
+
+    assert.equal(updated.statusCode, 200);
+    assert.equal(updated.json().data.name, 'Original Agent Name');
+    assert.equal(updated.json().data.displayName, '繁中別名');
+  } finally {
+    await app.close();
+  }
+});
+
 test('POST /api/tasks/:id/retry moves blocked task to in_progress', async () => {
   const app = await createApp();
 

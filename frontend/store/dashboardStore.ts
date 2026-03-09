@@ -9,7 +9,8 @@ import {
   getConfiguredRuntimeMode,
   pauseAgent,
   resumeAgent,
-  retryTask
+  retryTask,
+  updateAgentDisplayName
 } from '@/lib/api';
 import { buildDashboardDerivedState } from '@/lib/dashboardDerivedState';
 import { shouldRetryRealtimeConnection, shouldStartRealtimeAfterLoadError } from '@/lib/realtimePolicy';
@@ -47,6 +48,7 @@ interface DashboardState {
   pauseSelectedAgent: () => Promise<void>;
   resumeSelectedAgent: () => Promise<void>;
   retrySelectedAgentTask: () => Promise<void>;
+  updateSelectedAgentDisplayName: (displayName: string | null) => Promise<void>;
 }
 
 let ws: WebSocket | null = null;
@@ -80,12 +82,28 @@ function snapshotState(snapshot: { agents: Agent[]; tasks: Task[]; events: Event
   };
 }
 
+function applyAgentUpdate(state: DashboardState, nextAgent: Agent): Partial<DashboardState> {
+  const agents = state.agents.map((agent) => (agent.id === nextAgent.id ? nextAgent : agent));
+  return {
+    agents,
+    ...buildDashboardDerivedState(agents, state.tasks)
+  };
+}
+
+function applyTaskUpdate(state: DashboardState, nextTask: Task): Partial<DashboardState> {
+  const tasks = state.tasks.map((task) => (task.id === nextTask.id ? nextTask : task));
+  return {
+    tasks,
+    ...buildDashboardDerivedState(state.agents, tasks)
+  };
+}
+
 function startSocket(set: (partial: Partial<DashboardState>) => void, get: () => DashboardState): void {
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
     return;
   }
 
-  set({ connectionStatus: 'connecting', connectionMessage: 'Connecting to realtime updates…' });
+  set({ connectionStatus: 'connecting', connectionMessage: '正在連線至即時更新…' });
 
   ws = connectDashboardWs((message) => {
     set(snapshotState(message.data.snapshot));
@@ -101,7 +119,7 @@ function startSocket(set: (partial: Partial<DashboardState>) => void, get: () =>
   ws.onerror = () => {
     set({
       connectionStatus: 'degraded',
-      connectionMessage: 'Realtime stream is unstable. Showing latest available data.'
+      connectionMessage: '即時串流不穩定，先顯示目前可取得的最新資料。'
     });
   };
 
@@ -114,8 +132,8 @@ function startSocket(set: (partial: Partial<DashboardState>) => void, get: () =>
       set({
         connectionStatus: 'degraded',
         connectionMessage: contractMismatch
-          ? 'Realtime payload contract mismatch detected. Check backend/frontend runtime contract alignment.'
-          : 'Realtime is unavailable right now. Refresh after the backend websocket is reachable.'
+          ? '偵測到即時 payload 契約不一致，請檢查前後端 runtime contract 是否同步。'
+          : '目前無法使用即時連線，待 backend websocket 恢復後再重新整理。'
       });
       return;
     }
@@ -126,8 +144,8 @@ function startSocket(set: (partial: Partial<DashboardState>) => void, get: () =>
     set({
       connectionStatus: 'disconnected',
       connectionMessage: contractMismatch
-        ? `Realtime payload contract mismatch detected. Retrying in ${Math.ceil(delay / 1000)}s…`
-        : `Realtime disconnected. Retrying in ${Math.ceil(delay / 1000)}s…`
+        ? `偵測到即時 payload 契約不一致，將於 ${Math.ceil(delay / 1000)} 秒後重試…`
+        : `即時連線已中斷，將於 ${Math.ceil(delay / 1000)} 秒後重試…`
     });
 
     clearReconnectTimer();
@@ -176,7 +194,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       });
       startSocket(set, get);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load dashboard data.';
+      const errorMessage = error instanceof Error ? error.message : '載入儀表板資料失敗。';
       const runtimeNotConfigured = isRuntimeNotConfiguredError(error);
       set({
         loading: false,
@@ -184,9 +202,9 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         error: errorMessage,
         connectionMessage: isRealModeStrictError(error)
           ? runtimeNotConfigured
-            ? 'Runtime adapter is not configured. Set OPENCLAW_RUNTIME_ENDPOINT and OPENCLAW_RUNTIME_API_KEY on backend (or ALLOW_RUNTIME_FALLBACK=true for temporary mock fallback).'
-            : 'Real runtime mode is strict and currently unavailable. Check backend runtime configuration.'
-          : 'Using fallback/local data when available.'
+            ? '尚未設定 OpenClaw adapter。請在 backend 設定 OPENCLAW_ADAPTER_ENDPOINT（或暫時用 ALLOW_RUNTIME_FALLBACK=true 啟用 mock fallback）。'
+            : '真實 runtime 模式目前不可用，請檢查 backend 的 adapter / runtime 設定。'
+          : '若可用，將先使用 fallback / 本機資料。'
       });
 
       if ((get().agents.length > 0 || get().tasks.length > 0 || get().events.length > 0) && !get().hasLoaded) {
@@ -209,9 +227,10 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
     set({ controlLoading: true, error: null });
     try {
-      await pauseAgent(agentId);
+      const nextAgent = await pauseAgent(agentId);
+      set(applyAgentUpdate(get(), nextAgent));
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Failed to pause agent.' });
+      set({ error: error instanceof Error ? error.message : '暫停 Agent 失敗。' });
     } finally {
       set({ controlLoading: false });
     }
@@ -222,9 +241,10 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
     set({ controlLoading: true, error: null });
     try {
-      await resumeAgent(agentId);
+      const nextAgent = await resumeAgent(agentId);
+      set(applyAgentUpdate(get(), nextAgent));
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Failed to resume agent.' });
+      set({ error: error instanceof Error ? error.message : '恢復 Agent 失敗。' });
     } finally {
       set({ controlLoading: false });
     }
@@ -233,15 +253,30 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     const selectedAgentId = get().selectedAgentId;
     const task = selectedAgentId ? get().blockedTaskByAgentId[selectedAgentId] : undefined;
     if (!task) {
-      set({ error: 'No blocked task found for this agent.' });
+      set({ error: '這位 Agent 目前沒有阻塞中的任務。' });
       return;
     }
 
     set({ controlLoading: true, error: null });
     try {
-      await retryTask(task.id);
+      const nextTask = await retryTask(task.id);
+      set(applyTaskUpdate(get(), nextTask));
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : 'Failed to retry task.' });
+      set({ error: error instanceof Error ? error.message : '重試任務失敗。' });
+    } finally {
+      set({ controlLoading: false });
+    }
+  },
+  updateSelectedAgentDisplayName: async (displayName) => {
+    const agentId = get().selectedAgentId;
+    if (!agentId) return;
+
+    set({ controlLoading: true, error: null });
+    try {
+      const nextAgent = await updateAgentDisplayName(agentId, displayName);
+      set(applyAgentUpdate(get(), nextAgent));
+    } catch (error) {
+      set({ error: error instanceof Error ? error.message : '更新 Agent 顯示別名失敗。' });
     } finally {
       set({ controlLoading: false });
     }

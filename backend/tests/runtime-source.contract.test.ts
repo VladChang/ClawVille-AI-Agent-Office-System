@@ -17,6 +17,8 @@ test('MockRuntimeSource honors runtime source contract for snapshot/list/control
   assert.equal(paused?.status, 'offline');
   const resumed = await source.resumeAgent(agent.id);
   assert.equal(resumed?.status, 'idle');
+  const aliased = await source.updateAgentDisplayName(agent.id, '合約別名');
+  assert.equal(aliased?.displayName, '合約別名');
 
   const task = await source.addTask({ title: 'Contract Task', priority: 'medium', status: 'blocked' });
   const retried = await source.retryTask(task.id);

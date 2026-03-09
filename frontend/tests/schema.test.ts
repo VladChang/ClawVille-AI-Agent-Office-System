@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   inferEventLevel,
+  normalizeAgent,
   normalizeAgentStatus,
   normalizeTaskStatus,
   normalizeEvent,
@@ -38,4 +39,16 @@ test('event level mapping and normalization cover websocket payload shape drift'
   });
 
   assert.equal(normalized.level, 'error');
+});
+
+test('normalizeAgent preserves optional displayName alias', () => {
+  const normalized = normalizeAgent({
+    id: 'a-1',
+    name: 'Nova',
+    displayName: ' 諾瓦 ',
+    role: 'Planner',
+    updatedAt: '2026-03-09T00:00:00.000Z'
+  });
+
+  assert.equal(normalized.displayName, '諾瓦');
 });

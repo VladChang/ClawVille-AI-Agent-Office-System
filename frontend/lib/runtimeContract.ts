@@ -5,6 +5,7 @@ import type { Agent, DashboardSnapshot, Event, Overview, Task } from '@/types/mo
 export interface RuntimeAgentPayload {
   id?: unknown;
   name?: unknown;
+  displayName?: unknown;
   role?: unknown;
   status?: unknown;
   updatedAt?: unknown;
@@ -125,6 +126,7 @@ export function mapRuntimeAgent(payload: unknown): Agent | null {
   return normalizeAgent({
     id,
     name,
+    displayName: asOptionalString(payload.displayName),
     role,
     status: asOptionalString(payload.status) as Agent['status'] | undefined,
     updatedAt

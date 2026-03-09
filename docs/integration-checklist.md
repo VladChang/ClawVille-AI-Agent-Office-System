@@ -22,12 +22,14 @@ Choose one path before running the checks below.
 
 ### Path B: Real upstream validation
 
-- Use this when validating the current prototype HTTP transport against a real OpenClaw-compatible upstream.
+- Use this when validating the current adapter-backed HTTP transport against a real OpenClaw upstream.
 - Minimal backend env:
   - `RUNTIME_SOURCE=openclaw`
-  - `OPENCLAW_RUNTIME_ENDPOINT=<UPSTREAM_URL>`
-  - `OPENCLAW_RUNTIME_API_KEY=<UPSTREAM_API_KEY>`
+  - `OPENCLAW_ADAPTER_ENDPOINT=http://127.0.0.1:3010`
   - `ALLOW_RUNTIME_FALLBACK=false`
+- Minimal adapter env:
+  - `OPENCLAW_INTERNAL_BASE_URL=<OPENCLAW_INTERNAL_URL>`
+  - `OPENCLAW_INTERNAL_API_KEY=<OPENCLAW_INTERNAL_API_KEY>` (if required)
 - Recommended frontend env:
   - `NEXT_PUBLIC_RUNTIME_MODE=real`
 - Passing this path confirms the current deployment can reach and operate against the configured upstream runtime, but it still does not by itself imply production-grade transport hardening.
@@ -42,10 +44,11 @@ Choose one path before running the checks below.
 - [ ] Runtime config verified:
   - Backend `.env`: `RUNTIME_SOURCE=mock` or `RUNTIME_SOURCE=openclaw`
   - If `RUNTIME_SOURCE=openclaw`, choose one runtime input:
-    - Real upstream wiring: set `OPENCLAW_RUNTIME_ENDPOINT`, `OPENCLAW_RUNTIME_API_KEY`
+    - Real upstream wiring: set `OPENCLAW_ADAPTER_ENDPOINT`
     - Integration fixture wiring: set `OPENCLAW_RUNTIME_FIXTURE_PATH` (or `OPENCLAW_RUNTIME_FIXTURE_JSON`)
-  - Optional HTTP transport tuning: `OPENCLAW_RUNTIME_POLL_MS`, `OPENCLAW_RUNTIME_POLL_MAX_BACKOFF_MS`, `OPENCLAW_RUNTIME_REQUEST_TIMEOUT_MS`, `OPENCLAW_RUNTIME_AUTH_HEADER`, `OPENCLAW_RUNTIME_AUTH_SCHEME`, `OPENCLAW_RUNTIME_SNAPSHOT_PATH`, `OPENCLAW_RUNTIME_AGENTS_PATH`, `OPENCLAW_RUNTIME_TASKS_PATH`, `OPENCLAW_RUNTIME_EVENTS_PATH`
-  - Treat current `openclaw` mode as a prototype transport baseline: HTTP snapshot/list/control and polling subscription exist, and timeout/backoff controls are available, but upstream-specific production hardening may still require tuning
+  - If using the adapter, configure `backend/.env.adapter` with `OPENCLAW_INTERNAL_BASE_URL` and related `OPENCLAW_INTERNAL_*` paths/auth settings
+  - Optional HTTP transport tuning: `OPENCLAW_RUNTIME_POLL_MS`, `OPENCLAW_RUNTIME_POLL_MAX_BACKOFF_MS`, `OPENCLAW_RUNTIME_REQUEST_TIMEOUT_MS`, `OPENCLAW_ADAPTER_AUTH_HEADER`, `OPENCLAW_ADAPTER_AUTH_SCHEME`, `OPENCLAW_ADAPTER_SNAPSHOT_PATH`, `OPENCLAW_ADAPTER_AGENTS_PATH`, `OPENCLAW_ADAPTER_TASKS_PATH`, `OPENCLAW_ADAPTER_EVENTS_PATH`
+  - Treat current `openclaw` mode as an adapter-backed prototype transport baseline: HTTP snapshot/list/control and polling subscription exist, and timeout/backoff controls are available, but upstream-specific production hardening may still require tuning
   - Fixture mode passing is not evidence that real upstream mode is passing
   - Keep `ALLOW_RUNTIME_FALLBACK=false` unless intentionally enabling temporary mock fallback
   - Frontend `.env.local`: `NEXT_PUBLIC_RUNTIME_MODE=local` for fallback-friendly integration checks (or `real` for strict runtime validation)

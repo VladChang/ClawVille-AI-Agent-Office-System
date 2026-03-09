@@ -167,7 +167,7 @@ ensure_package_install() {
 
 stop_local_if_running() {
   local pid_file
-  for pid_file in "$RUN_DIR"/backend.pid "$RUN_DIR"/frontend.pid; do
+  for pid_file in "$RUN_DIR"/adapter.pid "$RUN_DIR"/backend.pid "$RUN_DIR"/frontend.pid; do
     if [[ ! -f "$pid_file" ]]; then
       continue
     fi
@@ -187,6 +187,7 @@ start_local_service() {
   local env_file="$2"
   local log_file="$3"
   local pid_file="$4"
+  shift 4
 
   (
     cd "$service_dir"
@@ -194,7 +195,7 @@ start_local_service() {
     # shellcheck disable=SC1090
     source "$env_file"
     set +a
-    nohup npm start >"$log_file" 2>&1 &
+    nohup "$@" >"$log_file" 2>&1 &
     echo $! >"$pid_file"
   )
 }
@@ -202,6 +203,7 @@ start_local_service() {
 bootstrap_local() {
   ensure_node_tooling
   ensure_file_from_example "$ROOT_DIR/backend/.env" "$ROOT_DIR/backend/.env.example"
+  ensure_file_from_example "$ROOT_DIR/backend/.env.adapter" "$ROOT_DIR/backend/.env.adapter.example"
   ensure_file_from_example "$ROOT_DIR/frontend/.env.local" "$ROOT_DIR/frontend/.env.example"
 
   stop_local_if_running
@@ -216,9 +218,22 @@ bootstrap_local() {
 
   start_local_service \
     "$ROOT_DIR/backend" \
+    "$ROOT_DIR/backend/.env.adapter" \
+    "$LOG_DIR/adapter.log" \
+    "$RUN_DIR/adapter.pid" \
+    npm run adapter:start
+  wait_for_http \
+    "http://127.0.0.1:3010/health" \
+    "OpenClaw adapter" \
+    "$RUN_DIR/adapter.pid" \
+    "$LOG_DIR/adapter.log"
+
+  start_local_service \
+    "$ROOT_DIR/backend" \
     "$ROOT_DIR/backend/.env" \
     "$LOG_DIR/backend.log" \
-    "$RUN_DIR/backend.pid"
+    "$RUN_DIR/backend.pid" \
+    npm start
   wait_for_http \
     "http://127.0.0.1:3001/api/health" \
     "Backend" \
@@ -229,7 +244,8 @@ bootstrap_local() {
     "$ROOT_DIR/frontend" \
     "$ROOT_DIR/frontend/.env.local" \
     "$LOG_DIR/frontend.log" \
-    "$RUN_DIR/frontend.pid"
+    "$RUN_DIR/frontend.pid" \
+    npm start
   wait_for_http \
     "http://127.0.0.1:3000" \
     "Frontend" \
@@ -240,6 +256,7 @@ bootstrap_local() {
   echo "ClawVille is running in local mode."
   echo "Frontend: http://localhost:3000"
   echo "Backend:  http://localhost:3001/api/health"
+  echo "Adapter:  http://localhost:3010/health"
   echo "Logs:     $LOG_DIR"
   echo "Stop:     bash scripts/stop.sh"
 }

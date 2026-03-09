@@ -2,6 +2,7 @@
 
 import { Badge, Card } from '@/components/ui';
 import { DataHealthBanner, EmptyState } from '@/components/dataState';
+import { getTaskPriorityLabel } from '@/lib/presentation';
 import { useDashboardStore } from '@/store/dashboardStore';
 
 export default function TasksPage() {
@@ -21,22 +22,22 @@ export default function TasksPage() {
   const hasData = tasks.length > 0;
 
   return (
-    <Card title="Tasks">
+    <Card title="任務清單">
       <DataHealthBanner error={error} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
 
       <input
         value={taskSearch}
         onChange={(e) => setTaskSearch(e.target.value)}
-        placeholder="Search tasks"
+        placeholder="搜尋任務"
         className="mb-3 rounded border border-slate-700 bg-slate-950 px-3 py-1 text-sm"
       />
 
       {loading && !hasData ? (
-        <p className="text-sm text-slate-400">Loading tasks…</p>
+        <p className="text-sm text-slate-400">正在載入任務…</p>
       ) : filtered.length === 0 ? (
         <EmptyState
-          title={hasData ? 'No tasks match current search' : 'No tasks available'}
-          detail={hasData ? 'Try a different search keyword.' : 'Waiting for tasks from API/realtime snapshot.'}
+          title={hasData ? '目前沒有符合搜尋條件的任務' : '目前沒有任務資料'}
+          detail={hasData ? '請嘗試其他搜尋關鍵字。' : '等待 API / 即時快照回傳任務資料。'}
         />
       ) : (
         <div className="space-y-2">
@@ -46,9 +47,9 @@ export default function TasksPage() {
                 <p className="font-medium">{task.title}</p>
                 <Badge value={task.status} />
               </div>
-              <p className="text-xs text-slate-400">Priority: {task.priority}</p>
-              <p className="mt-1 text-xs text-slate-400">Agent: {task.assigneeAgentId ? agentNameById[task.assigneeAgentId] ?? 'Unassigned' : 'Unassigned'}</p>
-              <p className="mt-1 text-xs text-slate-400">Updated: {new Date(task.updatedAt).toLocaleString()}</p>
+              <p className="text-xs text-slate-400">優先級：{getTaskPriorityLabel(task.priority)}</p>
+              <p className="mt-1 text-xs text-slate-400">負責 Agent：{task.assigneeAgentId ? agentNameById[task.assigneeAgentId] ?? '未指派' : '未指派'}</p>
+              <p className="mt-1 text-xs text-slate-400">更新時間：{new Date(task.updatedAt).toLocaleString()}</p>
             </div>
           ))}
         </div>

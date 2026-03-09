@@ -1,9 +1,47 @@
 name: clawville
 
 services:
+  adapter:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: clawville-openclaw-adapter:local
+    command: ["node", "dist/backend/src/adapter/server.js"]
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3010
+      HOST: 0.0.0.0
+      LOG_LEVEL: info
+      OPENCLAW_INTERNAL_BASE_URL: ${OPENCLAW_INTERNAL_BASE_URL:-}
+      OPENCLAW_INTERNAL_API_KEY: ${OPENCLAW_INTERNAL_API_KEY:-}
+      OPENCLAW_INTERNAL_AUTH_HEADER: ${OPENCLAW_INTERNAL_AUTH_HEADER:-authorization}
+      OPENCLAW_INTERNAL_AUTH_SCHEME: ${OPENCLAW_INTERNAL_AUTH_SCHEME:-Bearer}
+      OPENCLAW_INTERNAL_REQUEST_TIMEOUT_MS: ${OPENCLAW_INTERNAL_REQUEST_TIMEOUT_MS:-5000}
+      OPENCLAW_INTERNAL_HEALTH_PATH: ${OPENCLAW_INTERNAL_HEALTH_PATH:-/health}
+      OPENCLAW_INTERNAL_SNAPSHOT_PATH: ${OPENCLAW_INTERNAL_SNAPSHOT_PATH:-/snapshot}
+      OPENCLAW_INTERNAL_AGENTS_PATH: ${OPENCLAW_INTERNAL_AGENTS_PATH:-/agents}
+      OPENCLAW_INTERNAL_TASKS_PATH: ${OPENCLAW_INTERNAL_TASKS_PATH:-/tasks}
+      OPENCLAW_INTERNAL_EVENTS_PATH: ${OPENCLAW_INTERNAL_EVENTS_PATH:-/events}
+      OPENCLAW_INTERNAL_AGENT_PAUSE_PATH_TEMPLATE: ${OPENCLAW_INTERNAL_AGENT_PAUSE_PATH_TEMPLATE:-/agents/:id/pause}
+      OPENCLAW_INTERNAL_AGENT_RESUME_PATH_TEMPLATE: ${OPENCLAW_INTERNAL_AGENT_RESUME_PATH_TEMPLATE:-/agents/:id/resume}
+      OPENCLAW_INTERNAL_TASK_RETRY_PATH_TEMPLATE: ${OPENCLAW_INTERNAL_TASK_RETRY_PATH_TEMPLATE:-/tasks/:id/retry}
+      OPENCLAW_ADAPTER_ALIAS_FILE: ${OPENCLAW_ADAPTER_ALIAS_FILE:-/app/backend/.data/openclaw-agent-aliases.json}
+    ports:
+      - "3010:3010"
+    volumes:
+      - clawville_data:/app/backend/.data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3010/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 10s
+
   backend:
     build:
-      context: ./backend
+      context: .
+      dockerfile: backend/Dockerfile
     image: clawville-backend:local
     restart: unless-stopped
     environment:
@@ -13,8 +51,14 @@ services:
       LOG_LEVEL: info
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
       RUNTIME_SOURCE: ${RUNTIME_SOURCE:-mock}
-      OPENCLAW_RUNTIME_ENDPOINT: ${OPENCLAW_RUNTIME_ENDPOINT:-}
-      OPENCLAW_RUNTIME_API_KEY: ${OPENCLAW_RUNTIME_API_KEY:-}
+      OPENCLAW_ADAPTER_ENDPOINT: ${OPENCLAW_ADAPTER_ENDPOINT:-http://adapter:3010}
+      OPENCLAW_ADAPTER_API_KEY: ${OPENCLAW_ADAPTER_API_KEY:-}
+      OPENCLAW_ADAPTER_AUTH_HEADER: ${OPENCLAW_ADAPTER_AUTH_HEADER:-authorization}
+      OPENCLAW_ADAPTER_AUTH_SCHEME: ${OPENCLAW_ADAPTER_AUTH_SCHEME:-Bearer}
+      OPENCLAW_ADAPTER_SNAPSHOT_PATH: ${OPENCLAW_ADAPTER_SNAPSHOT_PATH:-/snapshot}
+      OPENCLAW_ADAPTER_AGENTS_PATH: ${OPENCLAW_ADAPTER_AGENTS_PATH:-/agents}
+      OPENCLAW_ADAPTER_TASKS_PATH: ${OPENCLAW_ADAPTER_TASKS_PATH:-/tasks}
+      OPENCLAW_ADAPTER_EVENTS_PATH: ${OPENCLAW_ADAPTER_EVENTS_PATH:-/events}
       ALLOW_RUNTIME_FALLBACK: ${ALLOW_RUNTIME_FALLBACK:-false}
       RUNTIME_PERSISTENCE_ENABLED: ${RUNTIME_PERSISTENCE_ENABLED:-true}
       RUNTIME_PERSISTENCE_FILE: ${RUNTIME_PERSISTENCE_FILE:-/app/.data/runtime-state.json}
@@ -25,6 +69,9 @@ services:
       - "3001:3001"
     volumes:
       - clawville_data:/app/.data
+    depends_on:
+      adapter:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/api/health"]
       interval: 10s
@@ -34,7 +81,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend
+      context: .
+      dockerfile: frontend/Dockerfile
       args:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:3001/api}
         NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL:-ws://localhost:3001/ws}

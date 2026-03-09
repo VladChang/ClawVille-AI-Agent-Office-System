@@ -26,6 +26,7 @@ export type ApiTaskShape = Omit<Task, 'status'> & Partial<Pick<Task, 'status'>>;
 export function normalizeAgent(agent: ApiAgentShape): Agent {
   return {
     ...agent,
+    displayName: typeof agent.displayName === 'string' && agent.displayName.trim().length > 0 ? agent.displayName.trim() : undefined,
     status: normalizeAgentStatus(agent.status)
   };
 }
