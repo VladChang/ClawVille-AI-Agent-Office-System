@@ -17,21 +17,91 @@ export type OfficeTheme = {
   debugOverlayDefault: boolean;
 };
 
+type OfficeThemeDefinition = {
+  id: string;
+  label: string;
+  defaultBackgroundImage: string;
+  defaultPortraitBasePath: string;
+  defaultPortraitExtension: 'svg' | 'png' | 'webp';
+  backgroundFilename: string;
+};
+
 function matchesRole(role: string, keyword: string): boolean {
   return role.toLowerCase().includes(keyword);
 }
 
-const studioPortraits: OfficeTheme['portraits'] = {
-  planner: { id: 'planner', label: '規劃員工', image: '/office/portraits/planner.svg', scale: 1.05, offsetY: 0 },
-  researcher: { id: 'researcher', label: '研究員工', image: '/office/portraits/researcher.svg', scale: 1.05, offsetY: 0 },
-  builder: { id: 'builder', label: '工具員工', image: '/office/portraits/builder.svg', scale: 1.04, offsetY: 2 },
-  reviewer: { id: 'reviewer', label: '審查員工', image: '/office/portraits/reviewer.svg', scale: 1.02, offsetY: 1 },
-  responder: { id: 'responder', label: '事件員工', image: '/office/portraits/responder.svg', scale: 1.04, offsetY: 1 },
-  staff: { id: 'staff', label: '一般員工', image: '/office/portraits/staff.svg', scale: 1.02, offsetY: 1 }
+const officeThemeDefinitions: Record<string, OfficeThemeDefinition> = {
+  studio: {
+    id: 'studio',
+    label: 'Studio',
+    defaultBackgroundImage: '/office/office-ai-showcase.svg',
+    defaultPortraitBasePath: '/office/portraits',
+    defaultPortraitExtension: 'svg',
+    backgroundFilename: 'background.png'
+  },
+  succubus_showcase: {
+    id: 'succubus_showcase',
+    label: 'Succubus Showcase',
+    defaultBackgroundImage: '/office/themes/succubus-showcase/background.png',
+    defaultPortraitBasePath: '/office/themes/succubus-showcase/portraits',
+    defaultPortraitExtension: 'png',
+    backgroundFilename: 'background.png'
+  }
 };
 
-function resolveOfficeBackgroundImage(): string {
-  return process.env.NEXT_PUBLIC_OFFICE_BACKGROUND_IMAGE?.trim() || '/office/office-ai-showcase.svg';
+function trimTrailingSlash(value: string): string {
+  return value.replace(/\/+$/, '');
+}
+
+function resolveEnvValue(name: string): string | undefined {
+  const value = process.env[name]?.trim();
+  return value && value.length > 0 ? value : undefined;
+}
+
+function buildPortraits(basePath: string, extension: string): OfficeTheme['portraits'] {
+  const portrait = (id: string, label: string, scale: number, offsetY: number): OfficePortraitAsset => ({
+    id,
+    label,
+    image: `${basePath}/${id}.${extension}`,
+    scale,
+    offsetY
+  });
+
+  return {
+    planner: portrait('planner', '規劃員工', 1.05, 0),
+    researcher: portrait('researcher', '研究員工', 1.05, 0),
+    builder: portrait('builder', '工具員工', 1.04, 2),
+    reviewer: portrait('reviewer', '審查員工', 1.02, 1),
+    responder: portrait('responder', '事件員工', 1.04, 1),
+    staff: portrait('staff', '一般員工', 1.02, 1)
+  };
+}
+
+function resolveThemeDefinition(themeId: string): OfficeThemeDefinition {
+  return officeThemeDefinitions[themeId] ?? officeThemeDefinitions.studio;
+}
+
+function resolveOfficeAssetBasePath(): string | undefined {
+  const assetBasePath = resolveEnvValue('NEXT_PUBLIC_OFFICE_THEME_ASSET_BASE');
+  return assetBasePath ? trimTrailingSlash(assetBasePath) : undefined;
+}
+
+function resolveOfficeBackgroundImage(theme: OfficeThemeDefinition, assetBasePath: string | undefined): string {
+  const backgroundOverride = resolveEnvValue('NEXT_PUBLIC_OFFICE_BACKGROUND_IMAGE');
+  if (backgroundOverride) return backgroundOverride;
+  if (assetBasePath) return `${assetBasePath}/${theme.backgroundFilename}`;
+  return theme.defaultBackgroundImage;
+}
+
+function resolveOfficePortraitBasePath(theme: OfficeThemeDefinition, assetBasePath: string | undefined): string {
+  const portraitBaseOverride = resolveEnvValue('NEXT_PUBLIC_OFFICE_PORTRAIT_BASE_PATH');
+  if (portraitBaseOverride) return trimTrailingSlash(portraitBaseOverride);
+  if (assetBasePath) return `${assetBasePath}/portraits`;
+  return theme.defaultPortraitBasePath;
+}
+
+function resolveOfficePortraitExtension(theme: OfficeThemeDefinition): string {
+  return resolveEnvValue('NEXT_PUBLIC_OFFICE_PORTRAIT_EXTENSION') ?? theme.defaultPortraitExtension;
 }
 
 function resolveDebugOverlayDefault(): boolean {
@@ -40,23 +110,17 @@ function resolveDebugOverlayDefault(): boolean {
 }
 
 export function resolveOfficeTheme(themeId = process.env.NEXT_PUBLIC_OFFICE_THEME?.trim() || 'studio'): OfficeTheme {
-  const backgroundImage = resolveOfficeBackgroundImage();
-
-  if (themeId === 'studio') {
-    return {
-      id: 'studio',
-      label: 'Studio',
-      map: createOfficeMap(backgroundImage),
-      portraits: studioPortraits,
-      debugOverlayDefault: resolveDebugOverlayDefault()
-    };
-  }
+  const theme = resolveThemeDefinition(themeId);
+  const assetBasePath = resolveOfficeAssetBasePath();
+  const backgroundImage = resolveOfficeBackgroundImage(theme, assetBasePath);
+  const portraitBasePath = resolveOfficePortraitBasePath(theme, assetBasePath);
+  const portraitExtension = resolveOfficePortraitExtension(theme);
 
   return {
-    id: themeId,
-    label: themeId,
+    id: theme.id,
+    label: theme.label,
     map: createOfficeMap(backgroundImage),
-    portraits: studioPortraits,
+    portraits: buildPortraits(portraitBasePath, portraitExtension),
     debugOverlayDefault: resolveDebugOverlayDefault()
   };
 }

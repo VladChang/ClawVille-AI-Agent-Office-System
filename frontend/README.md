@@ -30,8 +30,11 @@ Default app URL: `http://localhost:3000`
 - `NEXT_PUBLIC_OPERATOR_ID` (default `demo-operator`)
 - `NEXT_PUBLIC_OPERATOR_ROLE` (`viewer` | `operator` | `admin`, default `operator`)
 - `NEXT_PUBLIC_USE_MOCK_API` (`false` by default, legacy compatibility flag)
-- `NEXT_PUBLIC_OFFICE_THEME` (default `studio`)
+- `NEXT_PUBLIC_OFFICE_THEME` (default `studio`, optional `succubus_showcase`)
+- `NEXT_PUBLIC_OFFICE_THEME_ASSET_BASE` (drop-in theme asset base path, e.g. `/office/themes/succubus-showcase`)
 - `NEXT_PUBLIC_OFFICE_BACKGROUND_IMAGE` (override Office background image asset)
+- `NEXT_PUBLIC_OFFICE_PORTRAIT_BASE_PATH` (override portrait asset directory)
+- `NEXT_PUBLIC_OFFICE_PORTRAIT_EXTENSION` (e.g. `png`, `webp`, `svg`)
 - `NEXT_PUBLIC_OFFICE_DEBUG_OVERLAY_DEFAULT` (`true`/`false`, default hidden)
 
 When `NEXT_PUBLIC_RUNTIME_MODE=real`, runtime failures are surfaced as strict-mode errors in dashboard state so operators can immediately see configuration/runtime issues.
@@ -57,3 +60,5 @@ npm run build
 - Pathfinding-driven movement with walkable areas, obstacles, zones, and anchor points
 - Debug overlay toggle for zones, walkable map, obstacles, and anchor points
 - Click-to-select staff stays in sync with drawer and Staff page highlight
+- Formal AI art can be swapped in by setting `NEXT_PUBLIC_OFFICE_THEME_ASSET_BASE` and dropping `background.png` plus `portraits/*.png` under that folder
+- Image-generation prompts for the formal showcase art live in [`../docs/ai-prompts/official-office-assets.md`](../docs/ai-prompts/official-office-assets.md)
