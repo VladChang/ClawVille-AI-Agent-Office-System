@@ -154,6 +154,10 @@ export function getRuntimeSourceDetail(status: RuntimeStatusSnapshot | null): st
     return '目前使用測試資料驗證路徑，不代表真實上游已通過';
   }
 
+  if (status.warning) {
+    return status.warning;
+  }
+
   if (status.dataSource === 'openclaw_mock_fallback') {
     return '目前退回模擬 fallback';
   }

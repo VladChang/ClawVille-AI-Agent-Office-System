@@ -52,8 +52,8 @@ Defaults:
 - `npm run dev` — watch mode
 - `npm run build` — compile TypeScript
 - `npm start` — run compiled server
-- `npm run test` — broader backend suite (currently includes hanging auth/audit coverage still being fixed)
-- `npm run test:ci` — stable scoped backend suite used by CI and release preflight
+- `npm run test` — full backend suite
+- `npm run test:ci` — pinned backend suite used by CI and release preflight
 - `npm run check` — type-check + stable scoped CI tests
 - `npm run check:full` — type-check + broader backend suite
 

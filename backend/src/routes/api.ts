@@ -1,5 +1,5 @@
 import { FastifyError, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { getRuntimeStatus, runtimeBinding, runtimeSource } from '../runtime';
+import { getRuntimeStatus, runtimeSource } from '../runtime';
 import { AGENT_STATUSES, AgentStatus, TASK_PRIORITIES, TASK_STATUSES, TaskStatus } from '../models/types';
 import { RuntimeSourceUnavailableError } from '../runtime/openclawRuntimeSource';
 import { renderPrometheusMetrics } from '../observability';
@@ -184,20 +184,25 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
   app.get('/health', async (_, reply) => ok(reply, { ok: true, ts: new Date().toISOString() }));
 
   app.get('/ready', async (_, reply) => {
-    if (runtimeBinding.mode === 'openclaw' && runtimeBinding.degraded && !runtimeBinding.allowFallback) {
+    const runtimeStatus = await getRuntimeStatus();
+
+    if (runtimeStatus.mode === 'openclaw' && !runtimeStatus.allowFallback && runtimeStatus.verified !== true) {
       return fail(
         reply,
         503,
-        'Runtime source is configured as openclaw but adapter is not fully configured. Backend is in strict degraded mode.',
+        runtimeStatus.warning ??
+          'Runtime source is configured as openclaw but adapter/upstream is not ready. Backend is in strict degraded mode.',
         'NOT_READY'
       );
     }
 
     return ok(reply, {
       ok: true,
-      runtimeSource: runtimeBinding.mode,
-      runtimeDegraded: runtimeBinding.degraded,
-      allowRuntimeFallback: runtimeBinding.allowFallback,
+      runtimeSource: runtimeStatus.mode,
+      runtimeDegraded: runtimeStatus.degraded,
+      allowRuntimeFallback: runtimeStatus.allowFallback,
+      runtimeVerified: runtimeStatus.verified,
+      runtimeDataSource: runtimeStatus.dataSource,
       ts: new Date().toISOString()
     });
   });
