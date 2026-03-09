@@ -8,15 +8,15 @@ const CHECK_METRICS = (process.env.ACCEPTANCE_CHECK_METRICS ?? 'false').toLowerC
 const READY_MODE = process.env.ACCEPTANCE_READY_MODE ?? 'graceful'; // graceful | ready | not-ready
 
 const routeChecks = [
-  { route: '/', expectedLabels: ['System Snapshot', 'Recent Events'] },
-  { route: '/agents', expectedLabels: ['Agents', 'Search name or role'] },
-  { route: '/tasks', expectedLabels: ['Tasks', 'Search tasks'] },
-  { route: '/events', expectedLabels: ['Event Timeline', 'All levels'] },
-  { route: '/office', expectedLabels: ['Office View', 'Office Map', 'Collaboration Signals'] },
-  { route: '/analytics', expectedLabels: ['Derived Metrics', 'Incident Playback'] }
+  { route: '/', expectedLabels: ['系統快照', '近期事件'] },
+  { route: '/agents', expectedLabels: ['代理人列表', '搜尋名稱、別名或角色'] },
+  { route: '/tasks', expectedLabels: ['任務清單', '搜尋任務'] },
+  { route: '/events', expectedLabels: ['事件時間軸', '全部等級'] },
+  { route: '/office', expectedLabels: ['辦公室視圖', '辦公室地圖', '協作訊號'] },
+  { route: '/analytics', expectedLabels: ['衍生指標', '事件回放'] }
 ];
 
-const sharedLayoutLabels = ['ClawVille Office', 'Overview', 'Agents', 'Tasks', 'Events', 'Analytics', 'Office'];
+const sharedLayoutLabels = ['ClawVille 控制台', '總覽', '代理人', '任務', '事件', '分析', '辦公室'];
 
 const apiChecks = [
   { endpoint: '/health', expectedData: (body) => body?.data?.ok === true, message: 'data.ok=true' },
