@@ -1,6 +1,6 @@
 'use client';
 
-import { getConnectionStatusLabel, getRuntimeSourceDetail, getRuntimeSourceLabel } from '@/lib/presentation';
+import { getConnectionStatusLabel, getRuntimeSourceDetail, getRuntimeSourceLabel, workforceLabels } from '@/lib/presentation';
 import { useDashboardStore } from '@/store/dashboardStore';
 
 export function SummaryBar() {
@@ -15,8 +15,8 @@ export function SummaryBar() {
 
   return (
     <header className="grid grid-cols-2 gap-3 border-b border-slate-800 bg-slate-900/60 p-4 md:grid-cols-6">
-      <Stat label="代理人總數" value={agentCount} />
-      <Stat label="活躍代理人" value={activeAgentCount} />
+      <Stat label={workforceLabels.total} value={agentCount} />
+      <Stat label={workforceLabels.active} value={activeAgentCount} />
       <Stat label="阻塞任務" value={blockedTaskCount} />
       <Stat label="事件數" value={eventCount} />
       <StatusStat status={connectionStatus} />

@@ -2,7 +2,7 @@
 
 import { Badge, Card } from '@/components/ui';
 import { DataHealthBanner, EmptyState } from '@/components/dataState';
-import { getTaskPriorityLabel } from '@/lib/presentation';
+import { getTaskPriorityLabel, workforceLabels } from '@/lib/presentation';
 import { useDashboardStore } from '@/store/dashboardStore';
 
 export default function TasksPage() {
@@ -49,7 +49,7 @@ export default function TasksPage() {
                 <Badge value={task.status} />
               </div>
               <p className="text-xs text-slate-400">優先級：{getTaskPriorityLabel(task.priority)}</p>
-              <p className="mt-1 text-xs text-slate-400">負責代理人：{task.assigneeAgentId ? agentNameById[task.assigneeAgentId] ?? '未指派' : '未指派'}</p>
+              <p className="mt-1 text-xs text-slate-400">{workforceLabels.assignee}：{task.assigneeAgentId ? agentNameById[task.assigneeAgentId] ?? '未指派' : '未指派'}</p>
               <p className="mt-1 text-xs text-slate-400">更新時間：{new Date(task.updatedAt).toLocaleString()}</p>
             </div>
           ))}

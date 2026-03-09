@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { Card, Badge } from '@/components/ui';
 import { DataHealthBanner, EmptyState } from '@/components/dataState';
-import { getAgentLabel } from '@/lib/presentation';
+import { getAgentLabel, workforceLabels } from '@/lib/presentation';
 import { useDashboardStore } from '@/store/dashboardStore';
 import type { Agent, AgentStatus } from '@/types/models';
 
@@ -136,7 +136,7 @@ export default function OfficePage() {
   return (
     <section className="space-y-4">
       <Card title="辦公室視圖">
-        <p className="mb-3 text-sm text-slate-300">這裡會用視覺化方式呈現與列表頁相同的代理人狀態。點擊任何頭像可打開代理人詳細面板。</p>
+        <p className="mb-3 text-sm text-slate-300">{workforceLabels.officeStatus}</p>
         <div className="flex flex-wrap gap-2">
           {occupancy.map((item) => (
             <span key={item.room} className="rounded-md border border-slate-700 bg-slate-900/60 px-2 py-1 text-xs text-slate-300">
@@ -150,10 +150,10 @@ export default function OfficePage() {
       <DataHealthBanner error={error} notice={notice} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
 
       <Card title="辦公室地圖">
-        <div className="mb-2 text-xs text-slate-400">提示：點擊任何頭像，會同步高亮代理人列表並打開控制抽屜。</div>
+        <div className="mb-2 text-xs text-slate-400">{workforceLabels.officeHint}</div>
         {agents.length === 0 ? (
           <EmptyState
-            title="目前尚無代理人資料"
+            title={workforceLabels.officeEmpty}
             detail="請保持後端運行，等待第一份即時快照或本機備援資料。"
           />
         ) : (
@@ -232,7 +232,7 @@ export default function OfficePage() {
         {roomOrder.map((room) => (
           <Card key={room} title={room}>
             {grouped[room].length === 0 ? (
-              <p className="text-sm text-slate-400">這個房間目前沒有代理人。</p>
+              <p className="text-sm text-slate-400">{workforceLabels.roomEmpty}</p>
             ) : (
               <ul className="space-y-2">
                 {grouped[room].map((agent) => {

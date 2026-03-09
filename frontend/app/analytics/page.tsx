@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Badge, Card } from '@/components/ui';
 import { DataHealthBanner, EmptyState, SkeletonLines } from '@/components/dataState';
 import { getDashboardDerivedMetrics } from '@/lib/analytics';
-import { getAgentLabel, getEventTypeLabel } from '@/lib/presentation';
+import { getAgentLabel, getEventTypeLabel, workforceLabels } from '@/lib/presentation';
 import { getEventLevelWeight } from '@/lib/schema';
 import { useDashboardStore } from '@/store/dashboardStore';
 import type { EventLevel } from '@/types/models';
@@ -188,7 +188,7 @@ export default function AnalyticsPage() {
         priority: 3
       },
       {
-        label: '代理人利用率',
+        label: workforceLabels.utilization,
         value: `${utilization}%`,
         sub: metricDeltaLabel(
           utilization,
@@ -210,7 +210,7 @@ export default function AnalyticsPage() {
         priority: 4
       },
       {
-        label: '最忙碌代理人',
+        label: workforceLabels.busiest,
         value: derived.busiestAgent?.name ?? '暫無',
         sub: derived.busiestAgent ? `${derived.busiestAgent.activeTaskCount} 個進行中任務` : '目前沒有進行中任務',
         tone: 'neutral',
@@ -693,11 +693,11 @@ export default function AnalyticsPage() {
                       <p className="text-[11px] text-slate-500">已經過 {playbackSnapshot.elapsedMinutes} 分鐘</p>
                     </div>
                     <div className="rounded border border-slate-800 bg-slate-950/40 p-2 text-xs text-slate-300">
-                      <p className="text-slate-400">事件 / 代理人</p>
+                      <p className="text-slate-400">{workforceLabels.analyticsPairing}</p>
                       <p className="mt-1 font-medium text-cyan-200">
                         {playbackSnapshot.totalEvents} / {playbackSnapshot.uniqueAgentsInvolved}
                       </p>
-                      <p className="text-[11px] text-slate-500">已播放範圍內的事件數 / 被提及的唯一代理人</p>
+                      <p className="text-[11px] text-slate-500">{workforceLabels.analyticsMentioned}</p>
                     </div>
                     <div className="rounded border border-slate-800 bg-slate-950/40 p-2 text-xs text-slate-300">
                       <p className="text-slate-400">主要事件類型</p>

@@ -3,6 +3,7 @@
 import { Card, Badge } from '@/components/ui';
 import { DataHealthBanner, EmptyState, SkeletonLines } from '@/components/dataState';
 import { getDashboardDerivedMetrics } from '@/lib/analytics';
+import { workforceLabels } from '@/lib/presentation';
 import { isErrorLevel } from '@/lib/schema';
 import { useDashboardStore } from '@/store/dashboardStore';
 
@@ -49,7 +50,7 @@ export default function OverviewPage() {
         ) : (
           <div className="grid gap-2 sm:grid-cols-2">
             <div className={`rounded border p-2 text-sm ${toneClass.neutral}`}>
-              <p className="text-xs text-slate-400">代理人總數</p>
+              <p className="text-xs text-slate-400">{workforceLabels.total}</p>
               <p className="font-semibold">{agents.length}</p>
             </div>
             <div className={`rounded border p-2 text-sm ${toneClass.neutral}`}>
@@ -65,7 +66,7 @@ export default function OverviewPage() {
               <p className="font-semibold">{derived.errorRate.percentage}%</p>
             </div>
             <div className={`rounded border p-2 text-sm ${toneClass.neutral} sm:col-span-2`}>
-              <p className="text-xs text-slate-400">最忙碌的代理人</p>
+              <p className="text-xs text-slate-400">{workforceLabels.busiest}</p>
               <p className="font-semibold">
                 {derived.busiestAgent
                   ? `${derived.busiestAgent.name}（${derived.busiestAgent.activeTaskCount} 個進行中任務）`

@@ -1,5 +1,5 @@
 import { isErrorLevel } from '@/lib/schema';
-import { getAgentLabel } from '@/lib/presentation';
+import { getAgentLabel, workforceLabels } from '@/lib/presentation';
 import type {
   Agent,
   Task,
@@ -46,7 +46,7 @@ export function getBusiestAgentByActiveTasks(agents: Agent[], tasks: Task[]): Bu
 
   return {
     agentId: bestAgentId,
-    name: agentName ? getAgentLabel(agentName) : '未知代理人',
+    name: agentName ? getAgentLabel(agentName) : workforceLabels.unknown,
     activeTaskCount: bestCount
   };
 }

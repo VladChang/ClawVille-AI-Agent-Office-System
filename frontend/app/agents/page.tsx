@@ -2,7 +2,7 @@
 
 import { Badge, Card } from '@/components/ui';
 import { DataHealthBanner, EmptyState } from '@/components/dataState';
-import { getAgentLabel } from '@/lib/presentation';
+import { getAgentLabel, workforceLabels } from '@/lib/presentation';
 import { useDashboardStore } from '@/store/dashboardStore';
 
 export default function AgentsPage() {
@@ -45,14 +45,14 @@ export default function AgentsPage() {
   const hasData = agents.length > 0;
 
   return (
-    <Card title="代理人列表">
+    <Card title={workforceLabels.list}>
       <DataHealthBanner error={error} notice={notice} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
 
       <div className="mb-3 flex flex-wrap gap-2">
         <input
           value={agentSearch}
           onChange={(e) => setAgentSearch(e.target.value)}
-          placeholder="搜尋名稱、別名或角色"
+          placeholder={workforceLabels.searchPlaceholder}
           className="rounded border border-slate-700 bg-slate-950 px-3 py-1 text-sm"
         />
         <select
@@ -68,11 +68,11 @@ export default function AgentsPage() {
       </div>
 
       {loading && !hasData ? (
-        <p className="text-sm text-slate-400">正在載入代理人資料…</p>
+        <p className="text-sm text-slate-400">{workforceLabels.loading}</p>
       ) : filtered.length === 0 ? (
         <EmptyState
-          title={hasData ? '目前沒有符合篩選條件的代理人' : '目前沒有代理人資料'}
-          detail={hasData ? '請試著清除搜尋或狀態篩選。' : '等待 API / 即時快照回傳代理人資料。'}
+          title={hasData ? workforceLabels.filteredEmpty : workforceLabels.empty}
+          detail={hasData ? '請試著清除搜尋或狀態篩選。' : workforceLabels.waitingForData}
         />
       ) : (
         <div className="space-y-2">

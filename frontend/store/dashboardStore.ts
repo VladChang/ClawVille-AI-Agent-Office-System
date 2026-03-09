@@ -14,6 +14,7 @@ import {
   updateAgentDisplayName
 } from '@/lib/api';
 import { buildDashboardDerivedState } from '@/lib/dashboardDerivedState';
+import { workforceLabels } from '@/lib/presentation';
 import { shouldRetryRealtimeConnection, shouldStartRealtimeAfterLoadError } from '@/lib/realtimePolicy';
 import { isInvalidRealtimePayloadCloseEvent, isRealModeStrictError, isRuntimeNotConfiguredError } from '@/lib/runtimeAdapter';
 import type { Agent, Event, RuntimeStatusSnapshot, Task } from '@/types/models';
@@ -239,7 +240,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       const nextAgent = await pauseAgent(agentId);
       set(applyAgentUpdate(get(), nextAgent));
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : '暫停代理人失敗。' });
+      set({ error: error instanceof Error ? error.message : workforceLabels.pauseError });
     } finally {
       set({ controlLoading: false });
     }
@@ -253,7 +254,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       const nextAgent = await resumeAgent(agentId);
       set(applyAgentUpdate(get(), nextAgent));
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : '恢復代理人失敗。' });
+      set({ error: error instanceof Error ? error.message : workforceLabels.resumeError });
     } finally {
       set({ controlLoading: false });
     }
@@ -262,7 +263,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     const selectedAgentId = get().selectedAgentId;
     const task = selectedAgentId ? get().blockedTaskByAgentId[selectedAgentId] : undefined;
     if (!task) {
-      set({ error: '這位代理人目前沒有阻塞中的任務。' });
+      set({ error: workforceLabels.noBlockedTask });
       return;
     }
 
@@ -288,7 +289,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         notice: !displayName || displayName.trim().length === 0 ? '已清除自訂名稱。' : '顯示名稱已儲存。'
       });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : '更新代理人顯示名稱失敗。' });
+      set({ error: error instanceof Error ? error.message : workforceLabels.renameError });
     } finally {
       set({ controlLoading: false });
     }

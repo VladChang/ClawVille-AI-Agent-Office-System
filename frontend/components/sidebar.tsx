@@ -5,11 +5,11 @@ import { usePathname } from 'next/navigation';
 
 const links = [
   { href: '/', label: '總覽' },
-  { href: '/agents', label: '代理人' },
+  { href: '/office', label: '辦公室' },
+  { href: '/agents', label: '員工' },
   { href: '/tasks', label: '任務' },
   { href: '/events', label: '事件' },
-  { href: '/analytics', label: '分析' },
-  { href: '/office', label: '辦公室' }
+  { href: '/analytics', label: '分析' }
 ];
 
 export function Sidebar() {

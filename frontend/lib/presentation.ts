@@ -9,6 +9,32 @@ import {
 import type { Agent, RuntimeStatusSnapshot } from '@/types/models';
 import type { DashboardConnectionStatus } from '@/store/dashboardStore';
 
+export const workforceLabels = {
+  singular: '員工',
+  list: '員工列表',
+  total: '員工總數',
+  active: '活躍員工',
+  busiest: '最忙碌的員工',
+  utilization: '員工利用率',
+  searchPlaceholder: '搜尋名稱、別名或角色',
+  loading: '正在載入員工資料…',
+  empty: '目前沒有員工資料',
+  filteredEmpty: '目前沒有符合篩選條件的員工',
+  waitingForData: '等待 API / 即時快照回傳員工資料。',
+  assignee: '負責員工',
+  unknown: '未知員工',
+  officeStatus: '這裡會用視覺化方式呈現與列表頁相同的員工狀態。點擊任何頭像可打開員工詳細面板。',
+  officeHint: '提示：點擊任何頭像，會同步高亮員工列表並打開控制抽屜。',
+  officeEmpty: '目前尚無員工資料',
+  roomEmpty: '這個房間目前沒有員工。',
+  analyticsPairing: '事件 / 員工',
+  analyticsMentioned: '已播放範圍內的事件數 / 被提及的唯一員工',
+  pauseError: '暫停員工失敗。',
+  resumeError: '恢復員工失敗。',
+  noBlockedTask: '這位員工目前沒有阻塞中的任務。',
+  renameError: '更新員工顯示名稱失敗。'
+} as const;
+
 const agentStatusLabels: Record<AgentStatus, string> = {
   idle: '待命',
   busy: '忙碌',
@@ -46,9 +72,9 @@ const eventTypeLabels: Record<string, string> = {
   task_created: '任務建立',
   task_updated: '任務更新',
   task_retried: '任務重試',
-  agent_status_changed: '代理人狀態變更',
-  agent_paused: '代理人已暫停',
-  agent_resumed: '代理人已恢復',
+  agent_status_changed: '員工狀態變更',
+  agent_paused: '員工已暫停',
+  agent_resumed: '員工已恢復',
   system: '系統'
 };
 
