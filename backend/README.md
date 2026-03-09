@@ -64,10 +64,12 @@ Defaults:
 - `GET /api/metrics`
 - `GET /api/overview`
 - `GET /api/agents`
+- `GET /api/runtime/status`
 - `POST /api/agents`
 - `POST /api/agents/:id/pause`
 - `POST /api/agents/:id/resume`
-- `PATCH /api/agents/:id/display-name`
+- `PATCH /api/agents/:id`
+- `PATCH /api/agents/:id/display-name` (backward-compatible alias path)
 - `GET /api/tasks`
 - `POST /api/tasks`
 - `PATCH /api/tasks/:id/status`

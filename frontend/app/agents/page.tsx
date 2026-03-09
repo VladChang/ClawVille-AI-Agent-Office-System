@@ -17,6 +17,7 @@ export default function AgentsPage() {
     selectedAgentId,
     loading,
     error,
+    notice,
     connectionStatus,
     connectionMessage
   } = useDashboardStore((s) => ({
@@ -30,6 +31,7 @@ export default function AgentsPage() {
     selectedAgentId: s.selectedAgentId,
     loading: s.loading,
     error: s.error,
+    notice: s.notice,
     connectionStatus: s.connectionStatus,
     connectionMessage: s.connectionMessage
   }));
@@ -44,7 +46,7 @@ export default function AgentsPage() {
 
   return (
     <Card title="代理人列表">
-      <DataHealthBanner error={error} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
+      <DataHealthBanner error={error} notice={notice} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
 
       <div className="mb-3 flex flex-wrap gap-2">
         <input
@@ -66,11 +68,11 @@ export default function AgentsPage() {
       </div>
 
       {loading && !hasData ? (
-        <p className="text-sm text-slate-400">正在載入 Agents…</p>
+        <p className="text-sm text-slate-400">正在載入代理人資料…</p>
       ) : filtered.length === 0 ? (
         <EmptyState
-          title={hasData ? '目前沒有符合篩選條件的 Agent' : '目前沒有 Agent 資料'}
-          detail={hasData ? '請試著清除搜尋或狀態篩選。' : '等待 API / 即時快照回傳 Agent 資料。'}
+          title={hasData ? '目前沒有符合篩選條件的代理人' : '目前沒有代理人資料'}
+          detail={hasData ? '請試著清除搜尋或狀態篩選。' : '等待 API / 即時快照回傳代理人資料。'}
         />
       ) : (
         <div className="space-y-2">

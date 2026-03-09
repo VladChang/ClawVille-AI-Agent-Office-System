@@ -1,7 +1,7 @@
 import { createRuntimeAdapter, type SnapshotPayload } from '@/lib/runtimeAdapter';
 import { getOperatorHeaders } from '@/lib/operator';
 import type { RuntimeMode } from '@/lib/runtime';
-import type { Agent, Event, Task } from '@/types/models';
+import type { Agent, Event, RuntimeStatusSnapshot, Task } from '@/types/models';
 
 const runtime = createRuntimeAdapter();
 
@@ -54,7 +54,21 @@ export async function retryTask(taskId: string): Promise<Task> {
 }
 
 export async function updateAgentDisplayName(agentId: string, displayName: string | null): Promise<Agent> {
-  return apiRequest<Agent>(`/agents/${agentId}/display-name`, 'PATCH', { displayName });
+  return apiRequest<Agent>(`/agents/${agentId}`, 'PATCH', { displayName });
+}
+
+export async function fetchRuntimeStatus(): Promise<RuntimeStatusSnapshot> {
+  const response = await fetch(`${apiBaseUrl}/runtime/status`, {
+    headers: getOperatorHeaders(),
+    cache: 'no-store'
+  });
+  const json = (await response.json()) as { success: boolean; data: RuntimeStatusSnapshot; error?: { message?: string } };
+
+  if (!response.ok || !json.success) {
+    throw new Error(json.error?.message ?? `Request failed: ${response.status}`);
+  }
+
+  return json.data;
 }
 
 export function connectDashboardWs(onMessage: (payload: SnapshotPayload) => void): WebSocket {

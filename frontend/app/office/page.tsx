@@ -58,12 +58,13 @@ function thoughtSummary(agent: Agent, taskTitle?: string): string {
 }
 
 export default function OfficePage() {
-  const { agents, tasks, currentTaskByAgentId, loading, error, connectionStatus, connectionMessage, selectAgent, selectedAgentId } = useDashboardStore((s) => ({
+  const { agents, tasks, currentTaskByAgentId, loading, error, notice, connectionStatus, connectionMessage, selectAgent, selectedAgentId } = useDashboardStore((s) => ({
     agents: s.agents,
     tasks: s.tasks,
     currentTaskByAgentId: s.currentTaskByAgentId,
     loading: s.loading,
     error: s.error,
+    notice: s.notice,
     connectionStatus: s.connectionStatus,
     connectionMessage: s.connectionMessage,
     selectAgent: s.selectAgent,
@@ -135,7 +136,7 @@ export default function OfficePage() {
   return (
     <section className="space-y-4">
       <Card title="辦公室視圖">
-        <p className="mb-3 text-sm text-slate-300">這裡會用視覺化方式呈現與列表頁相同的 Agent 狀態。點擊任何 avatar 可打開 Agent 詳細面板。</p>
+        <p className="mb-3 text-sm text-slate-300">這裡會用視覺化方式呈現與列表頁相同的代理人狀態。點擊任何頭像可打開代理人詳細面板。</p>
         <div className="flex flex-wrap gap-2">
           {occupancy.map((item) => (
             <span key={item.room} className="rounded-md border border-slate-700 bg-slate-900/60 px-2 py-1 text-xs text-slate-300">
@@ -146,14 +147,14 @@ export default function OfficePage() {
       </Card>
 
       {loading && agents.length === 0 && <p className="text-sm text-slate-300">正在載入辦公室狀態…</p>}
-      <DataHealthBanner error={error} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
+      <DataHealthBanner error={error} notice={notice} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
 
       <Card title="辦公室地圖">
-        <div className="mb-2 text-xs text-slate-400">提示：點擊任何 avatar，會同步高亮 Agents 列表並打開控制抽屜。</div>
+        <div className="mb-2 text-xs text-slate-400">提示：點擊任何頭像，會同步高亮代理人列表並打開控制抽屜。</div>
         {agents.length === 0 ? (
           <EmptyState
-            title="目前尚無 Agent 資料"
-            detail="請保持 backend 運行，等待第一份即時快照或本機 fallback payload。"
+            title="目前尚無代理人資料"
+            detail="請保持後端運行，等待第一份即時快照或本機備援資料。"
           />
         ) : (
         <div className="relative h-[430px] w-full overflow-hidden rounded-xl border border-slate-800 bg-slate-950 md:h-[560px]">
@@ -231,7 +232,7 @@ export default function OfficePage() {
         {roomOrder.map((room) => (
           <Card key={room} title={room}>
             {grouped[room].length === 0 ? (
-              <p className="text-sm text-slate-400">這個房間目前沒有 Agent。</p>
+              <p className="text-sm text-slate-400">這個房間目前沒有代理人。</p>
             ) : (
               <ul className="space-y-2">
                 {grouped[room].map((agent) => {

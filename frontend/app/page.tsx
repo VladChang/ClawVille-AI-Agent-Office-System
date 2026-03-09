@@ -7,12 +7,13 @@ import { isErrorLevel } from '@/lib/schema';
 import { useDashboardStore } from '@/store/dashboardStore';
 
 export default function OverviewPage() {
-  const { agents, tasks, events, loading, error, connectionStatus, connectionMessage } = useDashboardStore((s) => ({
+  const { agents, tasks, events, loading, error, notice, connectionStatus, connectionMessage } = useDashboardStore((s) => ({
     agents: s.agents,
     tasks: s.tasks,
     events: s.events,
     loading: s.loading,
     error: s.error,
+    notice: s.notice,
     connectionStatus: s.connectionStatus,
     connectionMessage: s.connectionMessage
   }));
@@ -37,18 +38,18 @@ export default function OverviewPage() {
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <Card title="系統快照">
-        <DataHealthBanner error={error} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
+        <DataHealthBanner error={error} notice={notice} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
         {loading && !hasData ? (
           <SkeletonLines rows={7} />
         ) : !hasData ? (
           <EmptyState
             title="目前尚無儀表板資料"
-            detail="等待第一份快照。如果 backend 離線，系統會在可用時顯示本機 fallback 資料。"
+            detail="等待第一份快照。如果後端離線，系統會在可用時顯示本機備援資料。"
           />
         ) : (
           <div className="grid gap-2 sm:grid-cols-2">
             <div className={`rounded border p-2 text-sm ${toneClass.neutral}`}>
-              <p className="text-xs text-slate-400">Agents 總數</p>
+              <p className="text-xs text-slate-400">代理人總數</p>
               <p className="font-semibold">{agents.length}</p>
             </div>
             <div className={`rounded border p-2 text-sm ${toneClass.neutral}`}>
@@ -64,7 +65,7 @@ export default function OverviewPage() {
               <p className="font-semibold">{derived.errorRate.percentage}%</p>
             </div>
             <div className={`rounded border p-2 text-sm ${toneClass.neutral} sm:col-span-2`}>
-              <p className="text-xs text-slate-400">最忙碌的 Agent</p>
+              <p className="text-xs text-slate-400">最忙碌的代理人</p>
               <p className="font-semibold">
                 {derived.busiestAgent
                   ? `${derived.busiestAgent.name}（${derived.busiestAgent.activeTaskCount} 個進行中任務）`

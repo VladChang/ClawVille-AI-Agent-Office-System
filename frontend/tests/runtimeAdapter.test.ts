@@ -51,7 +51,7 @@ test('real runtime mode surfaces strict error when backend fetch fails', async (
       () => adapter.fetchAgents(),
       (error: unknown) => {
         assert.equal(isRealModeStrictError(error), true);
-        assert.match((error as Error).message, /Real mode does not allow mock\/local fallback/i);
+        assert.match((error as Error).message, /真實 runtime 模式不允許 mock\/local fallback/i);
         return true;
       }
     );

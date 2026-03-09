@@ -68,13 +68,13 @@ export function AgentDetailDrawer() {
             </p>
             <div className="space-y-2 rounded border border-slate-800 bg-slate-950/40 p-3">
               <label className="block text-xs text-slate-400" htmlFor="agent-display-name">
-                顯示別名
+                顯示名稱
               </label>
               <input
                 id="agent-display-name"
                 value={displayNameDraft}
                 onChange={(event) => setDisplayNameDraft(event.target.value)}
-                placeholder="輸入繁中顯示名稱"
+                placeholder="輸入自訂顯示名稱"
                 className="w-full rounded border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100"
               />
               <div className="flex gap-2">
@@ -83,7 +83,14 @@ export function AgentDetailDrawer() {
                   onClick={() => void updateSelectedAgentDisplayName(displayNameDraft)}
                   disabled={controlLoading}
                 >
-                  儲存別名
+                  儲存名稱
+                </button>
+                <button
+                  className="rounded bg-slate-700 px-3 py-1 text-xs font-medium hover:bg-slate-600 disabled:opacity-50"
+                  onClick={() => setDisplayNameDraft(selected.displayName ?? '')}
+                  disabled={controlLoading}
+                >
+                  取消
                 </button>
                 <button
                   className="rounded bg-slate-800 px-3 py-1 text-xs font-medium hover:bg-slate-700 disabled:opacity-50"
@@ -93,7 +100,7 @@ export function AgentDetailDrawer() {
                   }}
                   disabled={controlLoading}
                 >
-                  清除別名
+                  清除自訂名稱
                 </button>
               </div>
             </div>

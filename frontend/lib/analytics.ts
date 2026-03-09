@@ -46,7 +46,7 @@ export function getBusiestAgentByActiveTasks(agents: Agent[], tasks: Task[]): Bu
 
   return {
     agentId: bestAgentId,
-    name: agentName ? getAgentLabel(agentName) : '未知 Agent',
+    name: agentName ? getAgentLabel(agentName) : '未知代理人',
     activeTaskCount: bestCount
   };
 }

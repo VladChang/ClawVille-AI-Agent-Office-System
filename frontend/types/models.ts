@@ -45,3 +45,30 @@ export interface DashboardSnapshot {
   tasks: Task[];
   events: Event[];
 }
+
+export interface RuntimeStatusSnapshot {
+  mode: 'mock' | 'openclaw';
+  allowFallback: boolean;
+  degraded: boolean;
+  verified: boolean;
+  dataSource:
+    | 'mock'
+    | 'openclaw_fixture'
+    | 'openclaw_upstream'
+    | 'openclaw_adapter_only'
+    | 'openclaw_mock_fallback'
+    | 'openclaw_strict_unconfigured';
+  warning?: string;
+  counts?: {
+    agents: number;
+    tasks: number;
+    events: number;
+  };
+  adapter?: {
+    endpoint?: string;
+    endpointConfigured: boolean;
+    reachable: boolean;
+    configured: boolean;
+    upstreamHealthy: boolean;
+  };
+}

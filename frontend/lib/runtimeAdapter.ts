@@ -30,11 +30,11 @@ function toRealModeStrictError(action: string, error: unknown): Error {
   const message =
     error instanceof Error
       ? error.message
-      : `Unknown error while attempting to ${action} from configured runtime backend.`;
+      : `從已設定的 runtime backend 執行 ${action} 時發生未知錯誤。`;
 
   return new Error(
-    `${realModeErrorPrefix} Unable to ${action}. ` +
-      `Real mode does not allow mock/local fallback. Verify backend availability and runtime wiring. Root cause: ${message}`
+    `${realModeErrorPrefix} 無法${action}。` +
+      `真實 runtime 模式不允許 mock/local fallback。請檢查 backend 可用性與 runtime 接線。根因：${message}`
   );
 }
 

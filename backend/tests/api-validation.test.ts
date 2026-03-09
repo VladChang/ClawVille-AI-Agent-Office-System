@@ -74,14 +74,14 @@ test('PATCH /api/tasks/:id/status rejects invalid status values with a consisten
   }
 });
 
-test('PATCH /api/agents/:id/display-name rejects blank aliases with a consistent validation envelope', async () => {
+test('PATCH /api/agents/:id rejects aliases longer than 50 chars with a consistent validation envelope', async () => {
   const app = await createApp();
 
   try {
     const response = await app.inject({
       method: 'PATCH',
-      url: '/api/agents/agent-1/display-name',
-      payload: { displayName: '   ' }
+      url: '/api/agents/agent-1',
+      payload: { displayName: '123456789012345678901234567890123456789012345678901' }
     });
 
     assert.equal(response.statusCode, 400);

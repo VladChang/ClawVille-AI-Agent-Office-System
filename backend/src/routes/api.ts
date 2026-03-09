@@ -1,5 +1,5 @@
 import { FastifyError, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { runtimeBinding, runtimeSource } from '../runtime';
+import { getRuntimeStatus, runtimeBinding, runtimeSource } from '../runtime';
 import { AGENT_STATUSES, AgentStatus, TASK_PRIORITIES, TASK_STATUSES, TaskStatus } from '../models/types';
 import { RuntimeSourceUnavailableError } from '../runtime/openclawRuntimeSource';
 import { renderPrometheusMetrics } from '../observability';
@@ -141,7 +141,10 @@ const updateAgentDisplayNameBodySchema = {
   additionalProperties: false,
   properties: {
     displayName: {
-      anyOf: [nonBlankStringSchema, { type: 'null' }]
+      anyOf: [
+        { type: 'string', maxLength: 50 },
+        { type: 'null' }
+      ]
     }
   }
 } as const;
@@ -224,6 +227,8 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     }
   });
 
+  app.get('/runtime/status', async (_, reply) => ok(reply, await getRuntimeStatus()));
+
   app.post<{ Body: { name: string; role: string; status?: AgentStatus } }>(
     '/agents',
     {
@@ -303,6 +308,64 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     }
   });
 
+  const updateAgentDisplayNameHandler = async (req: FastifyRequest<{ Params: { id: string }; Body: { displayName: string | null } }>, reply: FastifyReply) => {
+    const actor = getActor(req);
+    const displayName =
+      typeof req.body.displayName === 'string' && req.body.displayName.trim().length > 0 ? req.body.displayName.trim() : null;
+
+    try {
+      const agent = await runtimeSource.updateAgentDisplayName(req.params.id, displayName);
+      if (!agent) {
+        auditTrail.record({
+          actorId: actor.id,
+          actorRole: actor.role,
+          action: 'agent.display_name',
+          targetType: 'agent',
+          targetId: req.params.id,
+          result: 'failure',
+          reason: 'NOT_FOUND'
+        });
+        return fail(reply, 404, 'Agent not found', 'NOT_FOUND');
+      }
+
+      auditTrail.record({
+        actorId: actor.id,
+        actorRole: actor.role,
+        action: 'agent.display_name',
+        targetType: 'agent',
+        targetId: agent.id,
+        result: 'success'
+      });
+      return ok(reply, agent);
+    } catch (error) {
+      if (isRuntimeUnavailable(error)) {
+        auditTrail.record({
+          actorId: actor.id,
+          actorRole: actor.role,
+          action: 'agent.display_name',
+          targetType: 'agent',
+          targetId: req.params.id,
+          result: 'failure',
+          reason: error.code
+        });
+        return runtimeFailure(reply, error);
+      }
+      throw error;
+    }
+  };
+
+  app.patch<{ Params: { id: string }; Body: { displayName: string | null } }>(
+    '/agents/:id',
+    {
+      schema: {
+        params: idParamsSchema,
+        body: updateAgentDisplayNameBodySchema
+      },
+      preHandler: mutationAccessPreHandler
+    },
+    updateAgentDisplayNameHandler
+  );
+
   app.patch<{ Params: { id: string }; Body: { displayName: string | null } }>(
     '/agents/:id/display-name',
     {
@@ -312,49 +375,7 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
       },
       preHandler: mutationAccessPreHandler
     },
-    async (req, reply) => {
-      const actor = getActor(req);
-
-      try {
-        const agent = await runtimeSource.updateAgentDisplayName(req.params.id, req.body.displayName);
-        if (!agent) {
-          auditTrail.record({
-            actorId: actor.id,
-            actorRole: actor.role,
-            action: 'agent.display_name',
-            targetType: 'agent',
-            targetId: req.params.id,
-            result: 'failure',
-            reason: 'NOT_FOUND'
-          });
-          return fail(reply, 404, 'Agent not found', 'NOT_FOUND');
-        }
-
-        auditTrail.record({
-          actorId: actor.id,
-          actorRole: actor.role,
-          action: 'agent.display_name',
-          targetType: 'agent',
-          targetId: agent.id,
-          result: 'success'
-        });
-        return ok(reply, agent);
-      } catch (error) {
-        if (isRuntimeUnavailable(error)) {
-          auditTrail.record({
-            actorId: actor.id,
-            actorRole: actor.role,
-            action: 'agent.display_name',
-            targetType: 'agent',
-            targetId: req.params.id,
-            result: 'failure',
-            reason: error.code
-          });
-          return runtimeFailure(reply, error);
-        }
-        throw error;
-      }
-    }
+    updateAgentDisplayNameHandler
   );
 
   app.get('/tasks', async (_, reply) => {

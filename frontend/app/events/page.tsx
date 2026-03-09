@@ -6,12 +6,13 @@ import { getEventTypeLabel } from '@/lib/presentation';
 import { useDashboardStore } from '@/store/dashboardStore';
 
 export default function EventsPage() {
-  const { events, eventLevelFilter, setEventLevelFilter, loading, error, connectionStatus, connectionMessage } = useDashboardStore((s) => ({
+  const { events, eventLevelFilter, setEventLevelFilter, loading, error, notice, connectionStatus, connectionMessage } = useDashboardStore((s) => ({
     events: s.events,
     eventLevelFilter: s.eventLevelFilter,
     setEventLevelFilter: s.setEventLevelFilter,
     loading: s.loading,
     error: s.error,
+    notice: s.notice,
     connectionStatus: s.connectionStatus,
     connectionMessage: s.connectionMessage
   }));
@@ -22,7 +23,7 @@ export default function EventsPage() {
 
   return (
     <Card title="事件時間軸">
-      <DataHealthBanner error={error} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
+      <DataHealthBanner error={error} notice={notice} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
 
       <select
         value={eventLevelFilter}

@@ -6,7 +6,7 @@ import {
   type TaskPriority,
   type TaskStatus
 } from '../../shared/contracts';
-import type { Agent } from '@/types/models';
+import type { Agent, RuntimeStatusSnapshot } from '@/types/models';
 import type { DashboardConnectionStatus } from '@/store/dashboardStore';
 
 const agentStatusLabels: Record<AgentStatus, string> = {
@@ -46,9 +46,9 @@ const eventTypeLabels: Record<string, string> = {
   task_created: '任務建立',
   task_updated: '任務更新',
   task_retried: '任務重試',
-  agent_status_changed: 'Agent 狀態變更',
-  agent_paused: 'Agent 已暫停',
-  agent_resumed: 'Agent 已恢復',
+  agent_status_changed: '代理人狀態變更',
+  agent_paused: '代理人已暫停',
+  agent_resumed: '代理人已恢復',
   system: '系統'
 };
 
@@ -94,4 +94,51 @@ export function formatBadgeValue(value: string): string {
   }
 
   return value;
+}
+
+export function getRuntimeSourceLabel(status: RuntimeStatusSnapshot | null): string {
+  if (!status) return '未知';
+
+  switch (status.dataSource) {
+    case 'mock':
+      return '模擬資料';
+    case 'openclaw_fixture':
+      return 'OpenClaw 測試資料';
+    case 'openclaw_upstream':
+      return 'OpenClaw 上游';
+    case 'openclaw_adapter_only':
+      return 'Adapter 已連線';
+    case 'openclaw_mock_fallback':
+      return '模擬 fallback';
+    case 'openclaw_strict_unconfigured':
+      return '未設定';
+    default:
+      return '未知';
+  }
+}
+
+export function getRuntimeSourceDetail(status: RuntimeStatusSnapshot | null): string | null {
+  if (!status) return null;
+
+  if (status.dataSource === 'openclaw_upstream') {
+    return '已驗證真實 OpenClaw 上游';
+  }
+
+  if (status.dataSource === 'openclaw_fixture') {
+    return '目前使用測試資料驗證路徑，不代表真實上游已通過';
+  }
+
+  if (status.dataSource === 'openclaw_mock_fallback') {
+    return '目前退回模擬 fallback';
+  }
+
+  if (status.dataSource === 'openclaw_adapter_only') {
+    return '轉接層可達，但上游尚未驗證成功';
+  }
+
+  if (status.dataSource === 'openclaw_strict_unconfigured') {
+    return '尚未完成轉接層 / 上游設定';
+  }
+
+  return null;
 }

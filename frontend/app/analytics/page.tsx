@@ -52,12 +52,13 @@ function metricDeltaLabel(current: number, previous: number, suffix = ''): strin
 }
 
 export default function AnalyticsPage() {
-  const { agents, tasks, events, loading, error, connectionStatus, connectionMessage } = useDashboardStore((s) => ({
+  const { agents, tasks, events, loading, error, notice, connectionStatus, connectionMessage } = useDashboardStore((s) => ({
     agents: s.agents,
     tasks: s.tasks,
     events: s.events,
     loading: s.loading,
     error: s.error,
+    notice: s.notice,
     connectionStatus: s.connectionStatus,
     connectionMessage: s.connectionMessage
   }));
@@ -187,7 +188,7 @@ export default function AnalyticsPage() {
         priority: 3
       },
       {
-        label: 'Agent 利用率',
+        label: '代理人利用率',
         value: `${utilization}%`,
         sub: metricDeltaLabel(
           utilization,
@@ -209,7 +210,7 @@ export default function AnalyticsPage() {
         priority: 4
       },
       {
-        label: '最忙碌 Agent',
+        label: '最忙碌代理人',
         value: derived.busiestAgent?.name ?? '暫無',
         sub: derived.busiestAgent ? `${derived.busiestAgent.activeTaskCount} 個進行中任務` : '目前沒有進行中任務',
         tone: 'neutral',
@@ -433,7 +434,7 @@ export default function AnalyticsPage() {
   return (
     <section className="space-y-4">
       <Card title="衍生指標">
-        <DataHealthBanner error={error} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
+        <DataHealthBanner error={error} notice={notice} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
         {loading && !hasData ? (
           <SkeletonLines rows={6} />
         ) : !hasData ? (
@@ -692,11 +693,11 @@ export default function AnalyticsPage() {
                       <p className="text-[11px] text-slate-500">已經過 {playbackSnapshot.elapsedMinutes} 分鐘</p>
                     </div>
                     <div className="rounded border border-slate-800 bg-slate-950/40 p-2 text-xs text-slate-300">
-                      <p className="text-slate-400">事件 / Agents</p>
+                      <p className="text-slate-400">事件 / 代理人</p>
                       <p className="mt-1 font-medium text-cyan-200">
                         {playbackSnapshot.totalEvents} / {playbackSnapshot.uniqueAgentsInvolved}
                       </p>
-                      <p className="text-[11px] text-slate-500">已播放範圍內的事件數 / 被提及的唯一 Agents</p>
+                      <p className="text-[11px] text-slate-500">已播放範圍內的事件數 / 被提及的唯一代理人</p>
                     </div>
                     <div className="rounded border border-slate-800 bg-slate-950/40 p-2 text-xs text-slate-300">
                       <p className="text-slate-400">主要事件類型</p>

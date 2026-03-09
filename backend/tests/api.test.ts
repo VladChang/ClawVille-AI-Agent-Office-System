@@ -60,7 +60,7 @@ test('POST /api/agents/:id/resume resumes a paused agent', async () => {
   }
 });
 
-test('PATCH /api/agents/:id/display-name updates agent alias without overwriting original name', async () => {
+test('PATCH /api/agents/:id updates agent alias without overwriting original name', async () => {
   const app = await createApp();
 
   try {
@@ -74,13 +74,44 @@ test('PATCH /api/agents/:id/display-name updates agent alias without overwriting
 
     const updated = await app.inject({
       method: 'PATCH',
-      url: `/api/agents/${agentId}/display-name`,
+      url: `/api/agents/${agentId}`,
       payload: { displayName: '繁中別名' }
     });
 
     assert.equal(updated.statusCode, 200);
     assert.equal(updated.json().data.name, 'Original Agent Name');
     assert.equal(updated.json().data.displayName, '繁中別名');
+  } finally {
+    await app.close();
+  }
+});
+
+test('PATCH /api/agents/:id can clear displayName without overwriting original name', async () => {
+  const app = await createApp();
+
+  try {
+    const created = await app.inject({
+      method: 'POST',
+      url: '/api/agents',
+      payload: { name: 'Agent To Clear Alias', role: 'QA' }
+    });
+
+    const agentId = created.json().data.id as string;
+    await app.inject({
+      method: 'PATCH',
+      url: `/api/agents/${agentId}`,
+      payload: { displayName: '暫時別名' }
+    });
+
+    const cleared = await app.inject({
+      method: 'PATCH',
+      url: `/api/agents/${agentId}`,
+      payload: { displayName: '' }
+    });
+
+    assert.equal(cleared.statusCode, 200);
+    assert.equal(cleared.json().data.name, 'Agent To Clear Alias');
+    assert.equal(cleared.json().data.displayName, undefined);
   } finally {
     await app.close();
   }
@@ -130,6 +161,24 @@ test('control endpoints return NOT_FOUND for unknown ids', async () => {
     const retry = await app.inject({ method: 'POST', url: '/api/tasks/does-not-exist/retry' });
     assert.equal(retry.statusCode, 404);
     assert.equal(retry.json().error.code, 'NOT_FOUND');
+  } finally {
+    await app.close();
+  }
+});
+
+test('GET /api/runtime/status reports current mock runtime source details', async () => {
+  const app = await createApp();
+
+  try {
+    const response = await app.inject({ method: 'GET', url: '/api/runtime/status' });
+    assert.equal(response.statusCode, 200);
+
+    const body = response.json();
+    assert.equal(body.success, true);
+    assert.equal(body.data.mode, 'mock');
+    assert.equal(body.data.dataSource, 'mock');
+    assert.equal(body.data.verified, false);
+    assert.equal(typeof body.data.counts.agents, 'number');
   } finally {
     await app.close();
   }

@@ -3,10 +3,12 @@ import type { DashboardConnectionStatus } from '@/store/dashboardStore';
 
 export function DataHealthBanner({
   error,
+  notice,
   connectionStatus,
   connectionMessage
 }: {
   error: string | null;
+  notice?: string | null;
   connectionStatus: DashboardConnectionStatus;
   connectionMessage: string | null;
 }) {
@@ -17,13 +19,14 @@ export function DataHealthBanner({
 
   return (
     <div className="mb-3 space-y-2">
+      {notice && <Notice tone="info">{notice}</Notice>}
       {error && <Notice tone="error">{error}</Notice>}
       {connectionStatus === 'disconnected' && connectionMessage && <Notice tone="warn">{connectionMessage}</Notice>}
       {connectionStatus === 'degraded' && connectionMessage && (
         <Notice tone="warn">
           {isRuntimeNotConfigured ? (
             <>
-              <b>尚未設定 runtime：</b> {connectionMessage}
+              <b>尚未設定執行來源：</b> {connectionMessage}
             </>
           ) : (
             connectionMessage

@@ -51,6 +51,81 @@ export interface RuntimeBinding {
   warning?: string;
 }
 
+export type RuntimeDataSource =
+  | 'mock'
+  | 'openclaw_fixture'
+  | 'openclaw_upstream'
+  | 'openclaw_adapter_only'
+  | 'openclaw_mock_fallback'
+  | 'openclaw_strict_unconfigured';
+
+export interface RuntimeStatus {
+  mode: RuntimeSourceMode;
+  allowFallback: boolean;
+  degraded: boolean;
+  verified: boolean;
+  dataSource: RuntimeDataSource;
+  warning?: string;
+  counts?: {
+    agents: number;
+    tasks: number;
+    events: number;
+  };
+  adapter?: {
+    endpoint?: string;
+    endpointConfigured: boolean;
+    reachable: boolean;
+    configured: boolean;
+    upstreamHealthy: boolean;
+  };
+}
+
+async function fetchAdapterHealth(endpoint: string | undefined): Promise<RuntimeStatus['adapter']> {
+  if (!endpoint) {
+    return {
+      endpointConfigured: false,
+      reachable: false,
+      configured: false,
+      upstreamHealthy: false
+    };
+  }
+
+  try {
+    const healthUrl = new URL('health', endpoint.endsWith('/') ? endpoint : `${endpoint}/`);
+    const response = await fetch(healthUrl);
+    if (!response.ok) {
+      return {
+        endpoint,
+        endpointConfigured: true,
+        reachable: false,
+        configured: false,
+        upstreamHealthy: false
+      };
+    }
+
+    const payload = (await response.json()) as {
+      success?: boolean;
+      data?: { configured?: boolean; upstreamHealthy?: boolean };
+    };
+
+    return {
+      endpoint,
+      endpointConfigured: true,
+      reachable: true,
+      configured: payload?.success === true && payload.data?.configured === true,
+      upstreamHealthy: payload?.success === true && payload.data?.upstreamHealthy === true
+    };
+  } catch {
+    return {
+      endpoint,
+      endpointConfigured: true,
+      reachable: false,
+      configured: false,
+      upstreamHealthy: false
+    };
+  }
+}
+
 export function createRuntimeSourceForMode(mode: RuntimeSourceMode): RuntimeSource {
   if (mode === 'openclaw') {
     const allowFallback = parseBooleanEnv(process.env.ALLOW_RUNTIME_FALLBACK);
@@ -91,3 +166,54 @@ export const runtimeBinding: RuntimeBinding = {
   degraded: runtimeDegraded,
   warning: runtimeWarning
 };
+
+export async function getRuntimeStatus(): Promise<RuntimeStatus> {
+  const fixtureEnabled = hasFixtureTransportEnv();
+  const adapter = runtimeSourceMode === 'openclaw' && !fixtureEnabled ? await fetchAdapterHealth(endpoint) : undefined;
+  const verified =
+    runtimeSourceMode === 'openclaw' &&
+    !fixtureEnabled &&
+    !runtimeDegraded &&
+    adapter?.endpointConfigured === true &&
+    adapter.reachable === true &&
+    adapter.configured === true &&
+    adapter.upstreamHealthy === true;
+
+  let counts: RuntimeStatus['counts'];
+  try {
+    const snapshot = await runtimeSource.getSnapshot();
+    counts = {
+      agents: snapshot.agents.length,
+      tasks: snapshot.tasks.length,
+      events: snapshot.events.length
+    };
+  } catch {
+    counts = undefined;
+  }
+
+  let dataSource: RuntimeDataSource = 'mock';
+  if (runtimeSourceMode === 'openclaw') {
+    if (fixtureEnabled) {
+      dataSource = 'openclaw_fixture';
+    } else if (verified) {
+      dataSource = 'openclaw_upstream';
+    } else if (runtimeDegraded && allowRuntimeFallback) {
+      dataSource = 'openclaw_mock_fallback';
+    } else if (adapter?.endpointConfigured) {
+      dataSource = 'openclaw_adapter_only';
+    } else {
+      dataSource = 'openclaw_strict_unconfigured';
+    }
+  }
+
+  return {
+    mode: runtimeBinding.mode,
+    allowFallback: runtimeBinding.allowFallback,
+    degraded: runtimeBinding.degraded,
+    verified,
+    dataSource,
+    warning: runtimeBinding.warning,
+    counts,
+    adapter
+  };
+}

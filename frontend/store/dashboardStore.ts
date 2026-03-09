@@ -5,6 +5,7 @@ import {
   connectDashboardWs,
   fetchAgents,
   fetchEvents,
+  fetchRuntimeStatus,
   fetchTasks,
   getConfiguredRuntimeMode,
   pauseAgent,
@@ -15,7 +16,7 @@ import {
 import { buildDashboardDerivedState } from '@/lib/dashboardDerivedState';
 import { shouldRetryRealtimeConnection, shouldStartRealtimeAfterLoadError } from '@/lib/realtimePolicy';
 import { isInvalidRealtimePayloadCloseEvent, isRealModeStrictError, isRuntimeNotConfiguredError } from '@/lib/runtimeAdapter';
-import type { Agent, Event, Task } from '@/types/models';
+import type { Agent, Event, RuntimeStatusSnapshot, Task } from '@/types/models';
 
 export type DashboardConnectionStatus = 'idle' | 'connecting' | 'connected' | 'degraded' | 'disconnected';
 
@@ -28,10 +29,12 @@ interface DashboardState {
   agentNameById: Record<string, string>;
   currentTaskByAgentId: Record<string, Task>;
   blockedTaskByAgentId: Record<string, Task>;
+  runtimeStatus: RuntimeStatusSnapshot | null;
   selectedAgentId: string | null;
   loading: boolean;
   hasLoaded: boolean;
   error: string | null;
+  notice: string | null;
   connectionStatus: DashboardConnectionStatus;
   connectionMessage: string | null;
   controlLoading: boolean;
@@ -132,8 +135,8 @@ function startSocket(set: (partial: Partial<DashboardState>) => void, get: () =>
       set({
         connectionStatus: 'degraded',
         connectionMessage: contractMismatch
-          ? '偵測到即時 payload 契約不一致，請檢查前後端 runtime contract 是否同步。'
-          : '目前無法使用即時連線，待 backend websocket 恢復後再重新整理。'
+          ? '偵測到即時資料契約不一致，請檢查前後端的執行來源契約是否同步。'
+          : '目前無法使用即時連線，待後端 WebSocket 恢復後再重新整理。'
       });
       return;
     }
@@ -144,7 +147,7 @@ function startSocket(set: (partial: Partial<DashboardState>) => void, get: () =>
     set({
       connectionStatus: 'disconnected',
       connectionMessage: contractMismatch
-        ? `偵測到即時 payload 契約不一致，將於 ${Math.ceil(delay / 1000)} 秒後重試…`
+        ? `偵測到即時資料契約不一致，將於 ${Math.ceil(delay / 1000)} 秒後重試…`
         : `即時連線已中斷，將於 ${Math.ceil(delay / 1000)} 秒後重試…`
     });
 
@@ -165,10 +168,12 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   agentNameById: {},
   currentTaskByAgentId: {},
   blockedTaskByAgentId: {},
+  runtimeStatus: null,
   selectedAgentId: null,
   loading: false,
   hasLoaded: false,
   error: null,
+  notice: null,
   connectionStatus: 'idle',
   connectionMessage: null,
   controlLoading: false,
@@ -184,27 +189,31 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       reconnectAttempt = 0;
       hasConnectedRealtime = false;
     }
-    set({ loading: !hasLoaded, error: null });
+    const runtimeStatusPromise = fetchRuntimeStatus().catch(() => null);
+    set({ loading: !hasLoaded, error: null, notice: null });
 
     try {
-      const [agents, tasks, events] = await Promise.all([fetchAgents(), fetchTasks(), fetchEvents()]);
+      const [agents, tasks, events, runtimeStatus] = await Promise.all([fetchAgents(), fetchTasks(), fetchEvents(), runtimeStatusPromise]);
       set({
         ...snapshotState({ agents, tasks, events }),
+        runtimeStatus,
         error: null
       });
       startSocket(set, get);
     } catch (error) {
+      const runtimeStatus = await runtimeStatusPromise;
       const errorMessage = error instanceof Error ? error.message : '載入儀表板資料失敗。';
       const runtimeNotConfigured = isRuntimeNotConfiguredError(error);
       set({
         loading: false,
+        runtimeStatus,
         connectionStatus: 'degraded',
         error: errorMessage,
         connectionMessage: isRealModeStrictError(error)
           ? runtimeNotConfigured
-            ? '尚未設定 OpenClaw adapter。請在 backend 設定 OPENCLAW_ADAPTER_ENDPOINT（或暫時用 ALLOW_RUNTIME_FALLBACK=true 啟用 mock fallback）。'
-            : '真實 runtime 模式目前不可用，請檢查 backend 的 adapter / runtime 設定。'
-          : '若可用，將先使用 fallback / 本機資料。'
+            ? '尚未設定 OpenClaw 轉接層。請在後端設定 OPENCLAW_ADAPTER_ENDPOINT（或暫時用 ALLOW_RUNTIME_FALLBACK=true 啟用模擬備援）。'
+            : '真實執行來源模式目前不可用，請檢查後端的轉接層 / 執行來源設定。'
+          : '若可用，將先使用備援 / 本機資料。'
       });
 
       if ((get().agents.length > 0 || get().tasks.length > 0 || get().events.length > 0) && !get().hasLoaded) {
@@ -230,7 +239,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       const nextAgent = await pauseAgent(agentId);
       set(applyAgentUpdate(get(), nextAgent));
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : '暫停 Agent 失敗。' });
+      set({ error: error instanceof Error ? error.message : '暫停代理人失敗。' });
     } finally {
       set({ controlLoading: false });
     }
@@ -244,7 +253,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       const nextAgent = await resumeAgent(agentId);
       set(applyAgentUpdate(get(), nextAgent));
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : '恢復 Agent 失敗。' });
+      set({ error: error instanceof Error ? error.message : '恢復代理人失敗。' });
     } finally {
       set({ controlLoading: false });
     }
@@ -253,7 +262,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     const selectedAgentId = get().selectedAgentId;
     const task = selectedAgentId ? get().blockedTaskByAgentId[selectedAgentId] : undefined;
     if (!task) {
-      set({ error: '這位 Agent 目前沒有阻塞中的任務。' });
+      set({ error: '這位代理人目前沒有阻塞中的任務。' });
       return;
     }
 
@@ -274,9 +283,12 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     set({ controlLoading: true, error: null });
     try {
       const nextAgent = await updateAgentDisplayName(agentId, displayName);
-      set(applyAgentUpdate(get(), nextAgent));
+      set({
+        ...applyAgentUpdate(get(), nextAgent),
+        notice: !displayName || displayName.trim().length === 0 ? '已清除自訂名稱。' : '顯示名稱已儲存。'
+      });
     } catch (error) {
-      set({ error: error instanceof Error ? error.message : '更新 Agent 顯示別名失敗。' });
+      set({ error: error instanceof Error ? error.message : '更新代理人顯示名稱失敗。' });
     } finally {
       set({ controlLoading: false });
     }

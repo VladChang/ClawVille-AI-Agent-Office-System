@@ -6,13 +6,14 @@ import { getTaskPriorityLabel } from '@/lib/presentation';
 import { useDashboardStore } from '@/store/dashboardStore';
 
 export default function TasksPage() {
-  const { tasks, agentNameById, taskSearch, setTaskSearch, loading, error, connectionStatus, connectionMessage } = useDashboardStore((s) => ({
+  const { tasks, agentNameById, taskSearch, setTaskSearch, loading, error, notice, connectionStatus, connectionMessage } = useDashboardStore((s) => ({
     tasks: s.tasks,
     agentNameById: s.agentNameById,
     taskSearch: s.taskSearch,
     setTaskSearch: s.setTaskSearch,
     loading: s.loading,
     error: s.error,
+    notice: s.notice,
     connectionStatus: s.connectionStatus,
     connectionMessage: s.connectionMessage
   }));
@@ -23,7 +24,7 @@ export default function TasksPage() {
 
   return (
     <Card title="任務清單">
-      <DataHealthBanner error={error} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
+      <DataHealthBanner error={error} notice={notice} connectionStatus={connectionStatus} connectionMessage={connectionMessage} />
 
       <input
         value={taskSearch}
@@ -48,7 +49,7 @@ export default function TasksPage() {
                 <Badge value={task.status} />
               </div>
               <p className="text-xs text-slate-400">優先級：{getTaskPriorityLabel(task.priority)}</p>
-              <p className="mt-1 text-xs text-slate-400">負責 Agent：{task.assigneeAgentId ? agentNameById[task.assigneeAgentId] ?? '未指派' : '未指派'}</p>
+              <p className="mt-1 text-xs text-slate-400">負責代理人：{task.assigneeAgentId ? agentNameById[task.assigneeAgentId] ?? '未指派' : '未指派'}</p>
               <p className="mt-1 text-xs text-slate-400">更新時間：{new Date(task.updatedAt).toLocaleString()}</p>
             </div>
           ))}
